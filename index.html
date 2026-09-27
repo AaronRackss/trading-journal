@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trading Journal V1</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    box-sizing:border-box;
+    --bg:#000000; --surface:#0A0A0A; --border:#1A1A1A;
+    --text:#FFFFFF; --text-dim:#A0A0A0;
+    --accent:#2383E2; --accent-soft:#1A2B3C;
+    --win:#2F9E58; --win-soft:#E2F3E7;
+    --loss:#D14343; --loss-soft:#FBE6E6;
+    --be:#8A8F99; --be-soft:#EDEEF0;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#000000; --surface:#0A0A0A; --border:#1A1A1A;
+      --text:#FFFFFF; --text-dim:#A0A0A0;
+      --accent:#2383E2; --accent-soft:#1A2B3C;
+      --win:#4CC17E; --win-soft:#173125;
+      --loss:#E2645F; --loss-soft:#331A1A;
+      --be:#8A8F99; --be-soft:#22242A;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#000000; --surface:#0A0A0A; --border:#1A1A1A;
+    --text:#FFFFFF; --text-dim:#A0A0A0;
+    --accent:#2383E2; --accent-soft:#1A2B3C;
+    --win:#4CC17E; --win-soft:#173125;
+    --loss:#E2645F; --loss-soft:#331A1A;
+    --be:#8A8F99; --be-soft:#22242A;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0; height:100vh; background:#000; color:var(--text);
+    font-family:-apple-system, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; justify-content:center; align-items:center;
+    overflow:hidden;
+  }
+  .app{
+    display:flex; flex-direction:column;
+    height:100vh; width:100vw;
+    background:var(--bg);
+    position:relative; overflow:hidden;
+  }
+  @media (min-width: 400px) {
+    .app {
+      height: 812px; width: 375px;
+      border: 12px solid #000; border-radius: 40px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+  }
+  header{
+    padding:calc(env(safe-area-inset-top,0px) + 18px) 20px 14px;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  header h1{margin:0; font-size:22px; font-weight:700; letter-spacing:-0.01em;}
+  header p{margin:2px 0 0; font-size:13px; color:var(--text-dim);}
+  main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 8px;}
+  nav{
+    display:flex; flex-shrink:0; border-top:1px solid var(--border);
+    background:var(--surface);
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 6px);
+  }
+  nav button{
+    flex:1; background:none; border:none; padding:9px 2px 6px; font-size:10px;
+    color:var(--text); font-family:inherit; display:flex; flex-direction:column;
+    align-items:center; gap:4px; cursor:pointer;
+  }
+  nav button i{font-size:18px; width:18px; height:18px;}
+  nav button.active{color:var(--accent);}
+  .view{display:none;}
+  .view.active{display:block;}
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .card h3{margin:0 0 2px; font-size:15.5px; font-weight:650;}
+  .card .meta{font-size:12.5px; color:var(--text-dim);}
+  .rowstats{display:flex; gap:14px; margin-top:10px; font-size:12.5px;}
+  .rowstats div{color:var(--text-dim);}
+  .rowstats strong{display:block; color:var(--text); font-size:14px; font-weight:650;}
+  .empty{
+    text-align:center; color:var(--text-dim); font-size:14px; padding:40px 20px;
+  }
+  .btn{
+    background:var(--accent); color:#FFFFFF; border:none; border-radius:12px;
+    padding:14px 16px; font-size:15px; font-weight:600; width:100%; cursor:pointer;
+    font-family:inherit; transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(35, 131, 226, 0.2);
+  }
+  .btn:active{
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+  .btn.secondary{background:transparent; color:var(--text); border:1px solid var(--border); box-shadow:none;}
+  .btn.danger{background:transparent; color:var(--loss); border:1px solid var(--loss); box-shadow:none;}
+  .fab{
+    position:sticky; bottom:0; margin:6px 0 4px; z-index:2;
+  }
+  label{display:block; font-size:12.5px; color:var(--text-dim); margin:12px 0 5px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=number], textarea, select{
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:10px 11px; font-size:15px; color:var(--text); font-family:inherit;
+  }
+  input::placeholder, textarea::placeholder, select::placeholder {
+    color: transparent;
+  }
+  .rulerow{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
+  .rulerow input{flex:1;}
+  .rulerow button{
+    background:var(--loss-soft); color:var(--loss); border:none; border-radius:7px;
+    width:34px; height:34px; font-size:16px; cursor:pointer; flex-shrink:0;
+  }
+  .addrule{display:flex; gap:8px; margin-bottom:14px;}
+  .addrule input{flex:1;}
+  .addrule button{
+    background:var(--accent-soft); color:var(--accent); border:none; border-radius:8px;
+    padding:0 14px; font-weight:650; font-size:14px; cursor:pointer;
+  }
+  .checklist label.chk{
+    display:flex; align-items:flex-start; gap:10px; font-size:14.5px; color:var(--text);
+    padding:9px 0; border-bottom:1px solid var(--border); margin:0; cursor:pointer;
+  }
+  .checklist label.chk:last-child{border-bottom:none;}
+  .checklist input[type=checkbox]{width:19px; height:19px; margin-top:1px; accent-color:var(--accent); flex-shrink:0;}
+  .segmented{display:flex; gap:8px; margin-bottom:2px;}
+  .segmented button{
+    flex:1; padding:10px 6px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-dim); font-weight:650; font-size:13.5px;
+    cursor:pointer; font-family:inherit;
+  }
+  .segmented button.sel[data-r="win"]{background:var(--win-soft); color:var(--win); border-color:var(--win);}
+  .segmented button.sel[data-r="loss"]{background:var(--loss-soft); color:var(--loss); border-color:var(--loss);}
+  .segmented button.sel[data-r="be"]{background:var(--be-soft); color:var(--be); border-color:var(--be);}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .top-actions{display:flex; justify-content:flex-end; margin-bottom:10px;}
+  .iconbtn{
+    background:var(--accent-soft); color:var(--accent); border:none; border-radius:8px;
+    padding:8px 14px; font-weight:650; font-size:14px; cursor:pointer; font-family:inherit;
+  }
+  .badge{
+    display:inline-block; font-size:11.5px; font-weight:650; padding:2px 8px; border-radius:20px;
+  }
+  .badge.win{background:var(--win-soft); color:var(--win);}
+  .badge.loss{background:var(--loss-soft); color:var(--loss);}
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom,0px) + 70px);
+    background:var(--text); color:var(--bg); padding:9px 16px; border-radius:20px;
+    font-size:13.5px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .toast.show{opacity:1;}
+  .privacy-btn{background:none; border:none; font-size:19px; cursor:pointer; padding:6px; margin-top:2px; color:var(--text); display:flex; align-items:center; justify-content:center;}
+  .money{transition:filter .15s;}
+  body.privacy .money{filter:blur(6px); user-select:none;}
+  .bar{background:var(--bg); border:1px solid var(--border); border-radius:6px; height:7px; overflow:hidden; margin-top:4px;}
+  .bar > div{height:100%; background:var(--accent);}
+  .bar.risk > div{background:var(--loss);}
+  .cover{width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; margin-bottom:10px; display:block; background:var(--bg); cursor:zoom-in;}
+  .section-title{font-size:12px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:.03em; margin:22px 0 8px;}
+  .section-title:first-child{margin-top:0;}
+  .lightbox{display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:50; align-items:center; justify-content:center; padding:24px;}
+  .lightbox.show{display:flex;}
+  .lightbox img{max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div>
+      <h1>Trading Journal V1</h1>
+      <p id="subtitle">Futures Tracker by Aaronrackss</p>
+    </div>
+    <button id="privacyBtn" class="privacy-btn" onclick="togglePrivacy()">
+      <i data-lucide="eye-off"></i>
+    </button>
+  </header>
+
+  <main>
+    <section id="view-accounts" class="view"></section>
+    <section id="view-log" class="view active"></section>
+    <section id="view-review" class="view"></section>
+    <section id="view-certs" class="view"></section>
+    <section id="view-stats" class="view"></section>
+  </main>
+
+  <nav>
+    <button data-view="accounts"><i data-lucide="wallet"></i>Cuentas</button>
+    <button data-view="log" class="active"><i data-lucide="book-open"></i>Registro</button>
+    <button data-view="review"><i data-lucide="calendar-range"></i>Revisión</button>
+    <button data-view="certs"><i data-lucide="coins"></i>Finanzas</button>
+    <button data-view="stats"><i data-lucide="bar-chart-3"></i>Stats</button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src=""></div>
+
+<script>
+const STORE_KEY = "mfb_playbook_v1";
+const SUPABASE_URL = "https://ebyktlxyadyxlbpwwjxf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Fzxd2AvJ8V_aU8zf1bWGGg_3mt2skUK";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let state = { setups: [], trades: [], accounts: [], reviews: {}, certs: [], expenses: [] };
+let editingAccountId = null;
+
+async function load(){
+  try{
+    const { data, error } = await _supabase
+      .from('user_data')
+      .select('data')
+      .single();
+
+    if (data && data.data) {
+      state = data.data;
+      console.log("Cargado desde Supabase");
+    } else {
+      const raw = localStorage.getItem(STORE_KEY);
+      if(raw) state = JSON.parse(raw);
+      console.log("Cargado desde LocalStorage");
+    }
+  }catch(e){
+    console.error("load error", e);
+    state = {setups:[], trades:[], accounts:[], reviews:{}, certs:[], expenses:[]};
+  }
+  if(!state.accounts) state.accounts = [];
+  if(!state.reviews) state.reviews = {};
+  if(!state.certs) state.certs = [];
+  if(!state.expenses) state.expenses = [];
+}
+
+function togglePrivacy(){
+  const on = !document.body.classList.contains("privacy");
+  document.body.classList.toggle("privacy", on);
+  const btn = document.getElementById("privacyBtn");
+  btn.innerHTML = on ? '<i data-lucide="eye"></i>' : '<i data-lucide="eye-off"></i>';
+  lucide.createIcons();
+  try{ localStorage.setItem("mfb_privacy", on?"1":"0"); }catch(e){}
+}
+
+function initPrivacy(){
+  let on=false;
+  try{ on = localStorage.getItem("mfb_privacy")==="1"; }catch(e){}
+  document.body.classList.toggle("privacy", on);
+  const btn = document.getElementById("privacyBtn");
+  btn.innerHTML = on ? '<i data-lucide="eye"></i>' : '<i data-lucide="eye-off"></i>';
+  lucide.createIcons();
+}
+
+async function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch(e){
+    console.error("ls save error", e);
+  }
+
+  try {
+    const { error } = await _supabase
+      .from('user_data')
+      .upsert({ id: 'main_user', data: state });
+
+    if (error) throw error;
+  } catch(e){
+    console.error("supabase save error", e);
+    toast("Error al sincronizar con la nube");
+  }
+}
+
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w>h){ if(w>maxDim){ h = Math.round(h*maxDim/w); w = maxDim; } }
+        else{ if(h>maxDim){ w = Math.round(w*maxDim/h); h = maxDim; } }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1600);
+}
+function escapeHtml(s){
+  return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function openLightbox(src){
+  document.getElementById("lightboxImg").src = src;
+  document.getElementById("lightbox").classList.add("show");
+}
+function closeLightbox(){
+  document.getElementById("lightbox").classList.remove("show");
+  document.getElementById("lightboxImg").src = "";
+}
+document.addEventListener("click", e=>{
+  if(e.target.classList && e.target.classList.contains("cover")){
+    e.stopPropagation();
+    openLightbox(e.target.src);
+  }
+});
+
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.addEventListener("click", ()=> showView(btn.dataset.view));
+});
+
+function showView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  document.getElementById("view-"+name).classList.add("active");
+  document.querySelector('nav button[data-view="'+name+'"]').classList.add("active");
+  if(name==="accounts") renderAccounts();
+  if(name==="log") renderLog();
+  if(name==="review") renderReview();
+  if(name==="certs") renderFinance();
+  if(name==="stats") renderStats();
+}
+
+function tradeOutcome(t){
+  if(!t.hadTrade) return null;
+  if(t.result==='TP') return 'win';
+  if(t.result==='SL') return 'loss';
+  if(t.result==='BE') return 'neutral';
+  if(t.result==='TIME'){
+    if(t.pnl>0) return 'win';
+    if(t.pnl<0) return 'loss';
+    return 'neutral';
+  }
+  return null;
+}
+
+function accountStats(accountId){
+  const acc = state.accounts.find(a=>a.id===accountId);
+  const trades = state.trades.filter(t=>t.accountId===accountId);
+  const tradeEntries = trades.filter(t=>t.hadTrade);
+  const count = tradeEntries.length;
+  const pnlVals = trades.filter(t=>t.pnl!=null).map(t=>t.pnl);
+  const totalPnl = pnlVals.reduce((a,b)=>a+b,0);
+  const wins = tradeEntries.filter(t=>tradeOutcome(t)==='win').length;
+  const losses = tradeEntries.filter(t=>tradeOutcome(t)==='loss').length;
+  const decisive = wins+losses;
+  const winrate = decisive? Math.round((wins/decisive)*100) : 0;
+  const balance = (acc && acc.size!=null)? (acc.size + totalPnl) : null;
+  return {count, totalPnl, winrate, balance};
+}
+
+function challengeStats(accountId){
+  const acc = state.accounts.find(a=>a.id===accountId);
+  const trades = state.trades.filter(t=>t.accountId===accountId && t.pnl!=null).sort((a,b)=>a.date-b.date);
+  let running = acc.size||0, peak = acc.size||0;
+  const dayTotals = {};
+  trades.forEach(t=>{
+    running += t.pnl;
+    if(running>peak) peak = running;
+    const dKey = new Date(t.date).toDateString();
+    dayTotals[dKey] = (dayTotals[dKey]||0) + t.pnl;
+  });
+  const todayKey = new Date().toDateString();
+  return {
+    profitSoFar: running - (acc.size||0),
+    drawdownUsed: peak - running,
+    daysTraded: Object.keys(dayTotals).length,
+    todayPnl: dayTotals[todayKey] || 0
+  };
+}
+
+function bar(pct, risk){
+  const p = Math.max(0, Math.min(100, Math.round(pct)));
+  return `<div class="bar${risk?' risk':''}"><div style="width:${p}%"></div></div>`;
+}
+
+function challengeBlockHtml(a){
+  if(a.profitTarget==null && a.dailyLossLimit==null && a.maxDrawdown==null && a.minDays==null) return "";
+  const cs = challengeStats(a.id);
+  let rows = `<div class="meta" style="margin-top:12px; font-weight:650">Challenge tracker</div>`;
+  if(a.profitTarget){
+    rows += `<div class="meta" style="margin-top:8px">Objetivo <span class="money">$${cs.profitSoFar.toFixed(2)}</span> / $${a.profitTarget}</div>${bar((cs.profitSoFar/a.profitTarget)*100)}`;
+  }
+  if(a.dailyLossLimit){
+    const used = cs.todayPnl<0? Math.abs(cs.todayPnl) : 0;
+    rows += `<div class="meta" style="margin-top:8px">Pérdida diaria <span class="money">$${used.toFixed(2)}</span> / $${a.dailyLossLimit}</div>${bar((used/a.dailyLossLimit)*100, true)}`;
+  }
+  if(a.maxDrawdown){
+    rows += `<div class="meta" style="margin-top:8px">Drawdown <span class="money">$${cs.drawdownUsed.toFixed(2)}</span> / $${a.maxDrawdown}</div>${bar((cs.drawdownUsed/a.maxDrawdown)*100, true)}`;
+  }
+  if(a.minDays){
+    rows += `<div class="meta" style="margin-top:8px">Días operados: ${cs.daysTraded} / ${a.minDays}</div>`;
+  }
+  return rows;
+}
+
+function renderAccounts(showForm){
+  const el = document.getElementById("view-accounts");
+  if(showForm){ el.innerHTML = accountFormHtml(); return; }
+  if(state.accounts.length===0){
+    el.innerHTML = `
+      <div class="empty">Aún no tienes cuentas.<br>Añade tu primera cuenta fondeada o en evaluación.</div>
+      <button class="btn" onclick="openNewAccount()">+ Nueva cuenta</button>`;
+    return;
+  }
+  let html = `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
+  state.accounts.forEach(a=>{
+    const st = accountStats(a.id);
+    html += `
+      <div class="card" onclick="openEditAccount('${a.id}')">
+        <h3>${escapeHtml(a.name)}</h3>
+        <div class="meta">${escapeHtml(a.firm)} · ${escapeHtml(a.status)}</div>
+        <div class="rowstats">
+          <div>Balance<strong class="money">${st.balance!=null? '$'+st.balance.toFixed(2) : '—'}</strong></div>
+          <div>Trades<strong>${st.count}</strong></div>
+          <div>Winrate<strong>${st.count? st.winrate+'%':'—'}</strong></div>
+          <div>P&L<strong class="money">${(st.totalPnl>=0?'$':'-$')+Math.abs(st.totalPnl).toFixed(2)}</strong></div>
+        </div>
+        ${a.status==='En evaluación'? challengeBlockHtml(a) : ''}
+      </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function openNewAccount(){ editingAccountId=null; renderAccounts(true); }
+function openEditAccount(id){ editingAccountId=id; renderAccounts(true); }
+
+function accountFormHtml(){
+  const a = editingAccountId? state.accounts.find(x=>x.id===editingAccountId): null;
+  const firms = ["Apex","Topstep","Tradeify","Lucid Trading","Otra"];
+  const firmOptions = firms.map(f=>`<option ${a&&a.firm===f?'selected':''}>${f}</option>`).join("");
+  const statuses = ["En evaluación","Fondeada","Fallida"];
+  const statusOptions = statuses.map(s=>`<option ${a&&a.status===s?'selected':''}>${s}</option>`).join("");
+  return `
+    <label>Nombre de la cuenta</label>
+    <input type="text" id="accName" value="${a?escapeHtml(a.name):''}" placeholder="Ej. LucidFlex 50K #1">
+    <label>Firma</label>
+    <select id="accFirm">${firmOptions}</select>
+    <label>Tamaño de la cuenta ($)</label>
+    <input type="number" step="1" id="accSize" value="${a&&a.size!=null?a.size:''}" placeholder="Ej. 50000">
+    <label>Estado</label>
+    <select id="accStatus">${statusOptions}</select>
+    <label>Reglas de la evaluación (opcional)</label>
+    <div class="meta" style="margin:-3px 0 8px">Pon los números exactos de tu plan — los ves en el dashboard de tu firma.</div>
+    <div class="grid2">
+      <div><label>Objetivo ($)</label><input type="number" step="1" id="accTarget" value="${a&&a.profitTarget!=null?a.profitTarget:''}" placeholder="Ej. 3000"></div>
+      <div><label>Pérdida diaria máx. ($)</label><input type="number" step="1" id="accDaily" value="${a&&a.dailyLossLimit!=null?a.dailyLossLimit:''}" placeholder="Ej. 1000"></div>
+      <div><label>Drawdown máx. ($)</label><input type="number" step="1" id="accDD" value="${a&&a.maxDrawdown!=null?a.maxDrawdown:''}" placeholder="Ej. 2500"></div>
+      <div><label>Días mínimos</label><input type="number" step="1" id="accMinDays" value="${a&&a.minDays!=null?a.minDays:''}" placeholder="Ej. 7"></div>
+    </div>
+    <button class="btn" style="margin-top:14px" onclick="saveAccount()">${a?'Guardar cambios':'Crear cuenta'}</button>
+    ${a?'<button class="btn danger" style="margin-top:8px" onclick="deleteAccount()">Eliminar cuenta</button>':''}
+    <button class="btn secondary" style="margin-top:8px" onclick="renderAccounts()">Cancelar</button>
+  `;
+}
+
+function saveAccount(){
+  const name = document.getElementById("accName").value.trim();
+  if(!name){ toast("Ponle un nombre a la cuenta"); return; }
+  const firm = document.getElementById("accFirm").value;
+  const sizeRaw = document.getElementById("accSize").value;
+  const size = sizeRaw? parseFloat(sizeRaw) : null;
+  const status = document.getElementById("accStatus").value;
+  const num = id => { const v = document.getElementById(id).value; return v? parseFloat(v) : null; };
+  const profitTarget = num("accTarget"), dailyLossLimit = num("accDaily"),
+        maxDrawdown = num("accDD"), minDays = num("accMinDays");
+  if(editingAccountId){
+    const a = state.accounts.find(x=>x.id===editingAccountId);
+    a.name=name; a.firm=firm; a.size=size; a.status=status;
+    a.profitTarget=profitTarget; a.dailyLossLimit=dailyLossLimit; a.maxDrawdown=maxDrawdown; a.minDays=minDays;
+  }else{
+    state.accounts.push({id:uid(), name, firm, size, status, profitTarget, dailyLossLimit, maxDrawdown, minDays, createdAt:Date.now()});
+  }
+  save();
+  toast("Cuenta guardada");
+  renderAccounts();
+}
+
+function deleteAccount(){
+  state.accounts = state.accounts.filter(x=>x.id!==editingAccountId);
+  state.trades.forEach(t=>{ if(t.accountId===editingAccountId) t.accountId=null; });
+  save();
+  toast("Cuenta eliminada");
+  renderAccounts();
+}
+
+let logDay = null;
+let logHadTrade = true;
+let logSelectedAccount = "";
+let logResult = null;
+let logUsedBE = false;
+let logRating = null;
+let logPhotoPreview = null;
+let logDraft = {};
+const LOG_FIELD_IDS = ['logSessionStart','logSessionEnd','logExecTime','logNews','logPnl','logPnlPct','logRisk','logRiskPct','logRR','logStrategy','logTimeframe','logBeMoment','logNotes','logFeeling','logMistakes'];
+
+function captureLogDraft(){
+  LOG_FIELD_IDS.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) logDraft[id] = el.value;
+  });
+}
+
+function weekMonthLabel(dayStr){
+  const ts = new Date(dayStr+"T12:00:00").getTime();
+  const wStart = startOfWeek(ts);
+  const wEnd = new Date(wStart.getTime()+6*86400000);
+  let month = new Date(ts).toLocaleDateString("es-ES",{month:"long", year:"numeric"});
+  month = month.charAt(0).toUpperCase()+month.slice(1);
+  return { week:`Semana del ${fmtDate(wStart.getTime())} al ${fmtDate(wEnd.getTime())}`, month };
+}
+
+function calcPnlPct(){
+  const amtEl = document.getElementById("logPnl");
+  const pctEl = document.getElementById("logPnlPct");
+  if(!amtEl || !pctEl) return;
+  const acc = state.accounts.find(a=>a.id===logSelectedAccount);
+  const val = parseFloat(amtEl.value);
+  if(!isNaN(val) && acc && acc.size){
+    pctEl.value = ((val/acc.size)*100).toFixed(2);
+  }
+}
+
+function calcRiskFromAmount(){
+  const amtEl = document.getElementById("logRisk");
+  const pctEl = document.getElementById("logRiskPct");
+  if(!amtEl || !pctEl) return;
+  const acc = state.accounts.find(a=>a.id===logSelectedAccount);
+  const val = parseFloat(amtEl.value);
+  if(!isNaN(val) && acc && acc.size){
+    pctEl.value = ((val/acc.size)*100).toFixed(2);
+  }
+}
+
+function calcRiskFromPct(){
+  const amtEl = document.getElementById("logRisk");
+  const pctEl = document.getElementById("logRiskPct");
+  if(!amtEl || !pctEl) return;
+  const acc = state.accounts.find(a=>a.id===logSelectedAccount);
+  const val = parseFloat(pctEl.value);
+  if(!isNaN(val) && acc && acc.size){
+    amtEl.value = ((val/100)*acc.size).toFixed(2);
+  }
+}
+
+function accountInfoHtml(accId){
+  if(!accId) return "";
+  const a = state.accounts.find(x=>x.id===accId);
+  if(!a) return "";
+  const st = accountStats(a.id);
+  const activeCount = state.accounts.filter(x=>x.status!=='Fallida').length;
+  const balPct = (a.size && st.balance!=null)? (((st.balance-a.size)/a.size)*100).toFixed(2) : null;
+  return `
+    <div class="card">
+      <div class="meta">Fase</div><h3>${escapeHtml(a.status)}</h3>
+      <div class="rowstats">
+        <div>Balance<strong class="money">${st.balance!=null?'$'+st.balance.toFixed(2):'—'}</strong></div>
+        <div>Balance %<strong class="money">${balPct!=null? balPct+'%':'—'}</strong></div>
+        <div>Objetivo<strong class="money">${a.profitTarget?'$'+a.profitTarget:'—'}</strong></div>
+        <div>Drawdown máx.<strong class="money">${a.maxDrawdown?'$'+a.maxDrawdown:'—'}</strong></div>
+      </div>
+      <div class="meta" style="margin-top:10px">Cuentas activas ahora mismo: ${activeCount}</div>
+    </div>`;
+}
+
+function renderLog(){
+  const el = document.getElementById("view-log");
+  if(!logDay) logDay = new Date().toISOString().slice(0,10);
+  const wm = weekMonthLabel(logDay);
+  const d = logDraft;
+  const accOptions = `<option value="">Sin cuenta</option>` + state.accounts.map(a=>`<option value="${a.id}" ${a.id===logSelectedAccount?'selected':''}>${escapeHtml(a.name)}</option>`).join("");
+
+  let historyHtml = "";
+  if(state.trades.length){
+    historyHtml += `<div class="section-title">Historial</div>`;
+    [...state.trades].sort((a,b)=>b.date-a.date).slice(0,30).forEach(t=>{
+      historyHtml += `
+        <div class="card">
+          ${t.photo? `<img src="${t.photo}" class="cover">` : ''}
+          <div class="meta" style="text-align:center">${fmtDate(t.date)}${t.pnl!=null? ' · <span class="money">$'+t.pnl.toFixed(2)+'</span>':''}${!t.hadTrade? ' · sin trade':''}</div>
+        </div>`;
+    });
+  }
+
+  el.innerHTML = `
+    <div class="section-title">Fecha y sesión</div>
+    <label>Día tradeado</label>
+    <input type="date" id="logDayInput" value="${logDay}" onchange="captureLogDraft(); logDay=this.value; renderLog();">
+    <div class="meta" style="margin-top:6px">${wm.week} · ${wm.month}</div>
+
+    <label style="margin-top:14px">¿Hubo trade ese día?</label>
+    <div class="segmented">
+      <button class="${logHadTrade?'sel':''}" data-r="win" onclick="captureLogDraft(); logHadTrade=true; renderLog();">Sí</button>
+      <button class="${!logHadTrade?'sel':''}" data-r="loss" onclick="captureLogDraft(); logHadTrade=false; renderLog();">No</button>
+    </div>
+
+    <div class="grid2">
+      <div><label>Hora inicio sesión</label><input type="time" id="logSessionStart" value="${d.logSessionStart||''}"></div>
+      <div><label>Hora fin sesión</label><input type="time" id="logSessionEnd" value="${d.logSessionEnd||''}"></div>
+    </div>
+    ${logHadTrade? `<label>Hora de ejecución del trade</label><input type="time" id="logExecTime" value="${d.logExecTime||''}">` : ''}
+
+    <label>Noticias del día</label>
+    <input type="text" id="logNews" value="${escapeHtml(d.logNews||'')}" placeholder="Ej. NFP 14:30, o «Ninguna»">
+
+    <div class="section-title">Cuenta</div>
+    <label>Cuenta usada ese día</label>
+    <select id="logAccountSelect" onchange="captureLogDraft(); logSelectedAccount=this.value; renderLog();">${accOptions}</select>
+    ${accountInfoHtml(logSelectedAccount)}
+
+    ${logHadTrade? `
+    <div class="section-title">El trade</div>
+    <div class="grid2">
+      <div><label>PnL del día ($)</label><input type="number" step="0.01" id="logPnl" value="${d.logPnl||''}" placeholder="Ej. 320" oninput="calcPnlPct()"></div>
+      <div><label>PnL del día (%)</label><input type="number" step="0.01" id="logPnlPct" value="${d.logPnlPct||''}" placeholder="Ej. 1.2"></div>
+      <div><label>Riesgo tomado ($)</label><input type="number" step="0.01" id="logRisk" value="${d.logRisk||''}" placeholder="Ej. 200" oninput="calcRiskFromAmount()"></div>
+      <div><label>Riesgo tomado (%)</label><input type="number" step="0.01" id="logRiskPct" value="${d.logRiskPct||''}" placeholder="Ej. 0.5" oninput="calcRiskFromPct()"></div>
+    </div>
+    <label>RR buscado (ej. 2 = 1:2)</label>
+    <input type="number" step="0.1" id="logRR" value="${d.logRR||''}" placeholder="Ej. 2">
+    <label>Resultado</label>
+    <div class="segmented">
+      <button class="${logResult==='TP'?'sel':''}" data-r="win" onclick="captureLogDraft(); logResult='TP'; renderLog();">TP</button>
+      <button class="${logResult==='SL'?'sel':''}" data-r="loss" onclick="captureLogDraft(); logResult='SL'; renderLog();">SL</button>
+      <button class="${logResult==='BE'?'sel':''}" data-r="be" onclick="captureLogDraft(); logResult='BE'; renderLog();">BE</button>
+      <button class="${logResult==='TIME'?'sel':''}" data-r="be" onclick="captureLogDraft(); logResult='TIME'; renderLog();">TIME</button>
+    </div>
+    <label>Estrategia usada (detalle)</label>
+    <textarea id="logStrategy" placeholder="Qué viste, por qué entraste…">${escapeHtml(d.logStrategy||'')}</textarea>
+    <label>Temporalidad de entrada</label>
+    <input type="text" id="logTimeframe" value="${escapeHtml(d.logTimeframe||'')}" placeholder="Ej. M5">
+    <label class="chk" style="border:none; padding:4px 0">
+      <input type="checkbox" id="logUsedBE" ${logUsedBE?'checked':''} onchange="captureLogDraft(); logUsedBE=this.checked; renderLog();">
+      <span>Usé break-even</span>
+    </label>
+    ${logUsedBE? `<label>¿En qué momento?</label><input type="text" id="logBeMoment" value="${escapeHtml(d.logBeMoment||'')}" placeholder="Ej. Al llegar a 1R">` : ''}
+    ` : ''}
+
+    <div class="section-title">Reflexión</div>
+    <label>Notas extra</label>
+    <textarea id="logNotes" placeholder="…">${escapeHtml(d.logNotes||'')}</textarea>
+    <label>¿Cómo te sentiste ese día?</label>
+    <textarea id="logFeeling" placeholder="…">${escapeHtml(d.logFeeling||'')}</textarea>
+    <label>¿Qué errores cometiste?</label>
+    <textarea id="logMistakes" placeholder="…">${escapeHtml(d.logMistakes||'')}</textarea>
+    <label>Valoración del día</label>
+    <div class="segmented">
+      <button class="${logRating==='malo'?'sel':''}" data-r="loss" onclick="captureLogDraft(); logRating='malo'; renderLog();">Malo</button>
+      <button class="${logRating==='meh'?'sel':''}" data-r="be" onclick="captureLogDraft(); logRating='meh'; renderLog();">Meh</button>
+      <button class="${logRating==='perfecto'?'sel':''}" data-r="win" onclick="captureLogDraft(); logRating='perfecto'; renderLog();">Perfecto</button>
+    </div>
+
+    <div class="section-title">Portada</div>
+    <label>Foto de portada (opcional)</label>
+    <input type="file" accept="image/*" id="logPhotoInput">
+    ${logPhotoPreview? `
+      <img src="${logPhotoPreview}" class="cover" style="margin-top:8px">
+      <div class="meta" style="text-align:center; margin-top:-6px">${fmtDate(new Date(logDay+"T12:00:00").getTime())}${d.logPnl? ' · $'+d.logPnl : ''}</div>
+    ` : ""}
+
+    <button class="btn" style="margin-top:16px" onclick="saveTrade()">Guardar día</button>
+    ${historyHtml}
+  `;
+  bindLogForm();
+}
+
+function bindLogForm(){
+  const input = document.getElementById("logPhotoInput");
+  if(!input) return;
+  input.addEventListener("change", async e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      captureLogDraft();
+      logPhotoPreview = await compressImage(file, 900, 0.6);
+      renderLog();
+    }catch(err){ console.error(err); toast("No se pudo procesar la imagen"); }
+  });
+}
+
+function saveTrade(){
+  captureLogDraft();
+  const d = logDraft;
+  if(logHadTrade && !logResult){ toast("Selecciona el resultado del trade"); return; }
+  if(!logRating){ toast("Elige una valoración del día"); return; }
+  const dayTs = new Date(logDay+"T12:00:00").getTime();
+  state.trades.push({
+    id:uid(), date:dayTs, day:logDay, accountId: logSelectedAccount||null,
+    hadTrade: logHadTrade,
+    sessionStart: d.logSessionStart||null, sessionEnd: d.logSessionEnd||null,
+    execTime: logHadTrade? (d.logExecTime||null) : null,
+    newsToday: d.logNews||"",
+    pnl: (logHadTrade && d.logPnl)? parseFloat(d.logPnl) : null,
+    pnlPct: (logHadTrade && d.logPnlPct)? parseFloat(d.logPnlPct) : null,
+    riskAmount: (logHadTrade && d.logRisk)? parseFloat(d.logRisk) : null,
+    riskPct: (logHadTrade && d.logRiskPct)? parseFloat(d.logRiskPct) : null,
+    rrTarget: (logHadTrade && d.logRR)? parseFloat(d.logRR) : null,
+    result: logHadTrade? logResult : null,
+    strategy: logHadTrade? (d.logStrategy||"") : "",
+    timeframe: logHadTrade? (d.logTimeframe||"") : "",
+    usedBE: logHadTrade? logUsedBE : false,
+    beMoment: (logHadTrade && logUsedBE)? (d.logBeMoment||"") : "",
+    notes: d.logNotes||"",
+    feeling: d.logFeeling||"",
+    mistakes: d.logMistakes||"",
+    rating: logRating,
+    photo: logPhotoPreview || null
+  });
+  save();
+  logHadTrade=true; logResult=null; logUsedBE=false; logRating=null; logPhotoPreview=null; logDraft={};
+  toast("Día registrado");
+  renderLog();
+}
+
+function startOfWeek(ts){
+  const d = new Date(ts);
+  const day = d.getDay();
+  const diff = (day===0? -6 : 1-day);
+  d.setDate(d.getDate()+diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function weekKey(ts){ return String(startOfWeek(ts).getTime()); }
+function monthKey(ts){ const d = new Date(ts); return d.getFullYear()+"-"+d.getMonth(); }
+function fmtDate(ts){
+  return new Date(ts).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"});
+}
+
+function renderReview(){
+  const el = document.getElementById("view-review");
+  const wStart = startOfWeek(Date.now());
+  const wEnd = new Date(wStart.getTime()+6*86400000);
+  const key = weekKey(Date.now());
+  const weekTrades = state.trades.filter(t=>weekKey(t.date)===key);
+  const tradeEntries = weekTrades.filter(t=>t.hadTrade);
+  const count = tradeEntries.length;
+  const pnlVals = weekTrades.filter(t=>t.pnl!=null).map(t=>t.pnl);
+  const totalPnl = pnlVals.reduce((a,b)=>a+b,0);
+  const wins = tradeEntries.filter(t=>tradeOutcome(t)==='win').length;
+  const losses = tradeEntries.filter(t=>tradeOutcome(t)==='loss').length;
+  const decisive = wins+losses;
+  const winrate = decisive? Math.round((wins/decisive)*100) : 0;
+
+  const byDay = {};
+  const dayPhotos = {};
+  weekTrades.forEach(t=>{
+    const dKey = fmtDate(t.date);
+    if(t.pnl!=null) byDay[dKey] = (byDay[dKey]||0) + t.pnl;
+    if(t.photo && !dayPhotos[dKey]) dayPhotos[dKey] = t.photo;
+  });
+  const days = Object.entries(byDay);
+  let bestDay=null, worstDay=null;
+  days.forEach(([d,v])=>{
+    if(!bestDay || v>bestDay[1]) bestDay=[d,v];
+    if(!worstDay || v<worstDay[1]) worstDay=[d,v];
+  });
+  const lossTrades = weekTrades.filter(t=>t.pnl!=null && t.pnl<0).sort((a,b)=>a.pnl-b.pnl);
+  const costliest = lossTrades.length? lossTrades[0] : null;
+
+  const rev = state.reviews[key] || {a1:"",a2:"",a3:""};
+
+  const dayRows = [...tradeEntries].sort((a,b)=>a.date-b.date).map(t=>{
+    const acc = t.accountId? state.accounts.find(a=>a.id===t.accountId) : null;
+    return `
+      <div class="card" style="margin-bottom:6px">
+        <div class="rowstats" style="margin-top:0">
+          <div>Día<strong>${fmtDate(t.date)}</strong></div>
+          <div>Cuenta<strong>${acc? escapeHtml(acc.name):'—'}</strong></div>
+          <div>PnL $<strong class="money">${t.pnl!=null?'$'+t.pnl.toFixed(2):'—'}</strong></div>
+          <div>PnL %<strong class="money">${t.pnlPct!=null? t.pnlPct+'%':'—'}</strong></div>
+        </div>
+      </div>`;
+  }).join("");
+
+  const mKey = monthKey(Date.now());
+  const monthTrades = state.trades.filter(t=>monthKey(t.date)===mKey);
+  const monthTradeEntries = monthTrades.filter(t=>t.hadTrade);
+  const mCount = monthTradeEntries.length;
+  const mPnlVals = monthTrades.filter(t=>t.pnl!=null).map(t=>t.pnl);
+  const mTotalPnl = mPnlVals.reduce((a,b)=>a+b,0);
+  const mWins = monthTradeEntries.filter(t=>tradeOutcome(t)==='win').length;
+  const mLosses = monthTradeEntries.filter(t=>tradeOutcome(t)==='loss').length;
+  const mDecisive = mWins+mLosses;
+  const mWinrate = mDecisive? Math.round((mWins/mDecisive)*100) : 0;
+  let monthName = new Date().toLocaleDateString("es-ES",{month:"long", year:"numeric"});
+  monthName = monthName.charAt(0).toUpperCase()+monthName.slice(1);
+  const weekBuckets = {};
+  monthTrades.forEach(t=>{ if(t.pnl!=null) weekBuckets[weekKey(t.date)] = (weekBuckets[weekKey(t.date)]||0) + t.pnl; });
+  const weekBreakdownHtml = Object.entries(weekBuckets).sort((a,b)=>Number(a[0])-Number(b[0])).map(([wk,v])=>{
+    const ws = new Date(Number(wk));
+    return `<div class="meta" style="margin-top:6px">Semana del ${fmtDate(ws.getTime())} <span class="money">$${v.toFixed(2)}</span></div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="card">
+      <h3>Semana del ${fmtDate(wStart)} al ${fmtDate(wEnd)}</h3>
+      <div class="rowstats">
+        <div>Trades<strong>${count}</strong></div>
+        <div>Winrate<strong>${decisive? winrate+'%':'—'}</strong></div>
+        <div>P&L<strong class="money">${pnlVals.length? '$'+totalPnl.toFixed(2):'—'}</strong></div>
+      </div>
+    </div>
+    ${count? `
+    <div class="section-title">Días de la semana</div>
+    ${dayRows}
+    <div class="card">
+      <div class="meta">Mejor día</div>
+      <h3 class="money">${bestDay? bestDay[0]+' · $'+bestDay[1].toFixed(2) : '—'}</h3>
+      ${bestDay && dayPhotos[bestDay[0]]? `<img src="${dayPhotos[bestDay[0]]}" class="cover" style="margin-top:8px">` : ''}
+      <div class="meta" style="margin-top:10px">Peor día</div>
+      <h3 class="money" style="margin-top:2px">${worstDay? worstDay[0]+' · $'+worstDay[1].toFixed(2) : '—'}</h3>
+      ${worstDay && worstDay[0]!==(bestDay&&bestDay[0]) && dayPhotos[worstDay[0]]? `<img src="${dayPhotos[worstDay[0]]}" class="cover" style="margin-top:8px">` : ''}
+    </div>
+    <div class="card">
+      <div class="meta">Error más caro</div>
+      ${costliest? `
+        <h3 class="money">${costliest.strategy? escapeHtml(costliest.strategy) : 'Sin estrategia registrada'} · $${costliest.pnl.toFixed(2)}</h3>
+        ${costliest.mistakes? `<div class="meta">${escapeHtml(costliest.mistakes)}</div>` : ''}
+      ` : `<div class="meta">Ninguna pérdida registrada esta semana</div>`}
+    </div>` : `<div class="empty">Aún no has registrado trades esta semana.</div>`}
+
+    <div class="section-title">Resumen mensual — ${monthName}</div>
+    <div class="card">
+      <div class="rowstats" style="margin-top:0">
+        <div>Trades<strong>${mCount}</strong></div>
+        <div>Winrate<strong>${mDecisive? mWinrate+'%':'—'}</strong></div>
+        <div>P&L<strong class="money">${mPnlVals.length? '$'+mTotalPnl.toFixed(2):'—'}</strong></div>
+      </div>
+      ${weekBreakdownHtml? `<div class="meta" style="margin-top:10px; font-weight:650">Por semana</div>${weekBreakdownHtml}` : `<div class="meta" style="margin-top:10px">Aún no hay semanas con datos este mes</div>`}
+    </div>
+
+    <label>¿Qué error se repitió esta semana?</label>
+    <textarea id="revA1" placeholder="…">${escapeHtml(rev.a1)}</textarea>
+    <label>¿Qué hiciste bien que quieres repetir?</label>
+    <textarea id="revA2" placeholder="…">${escapeHtml(rev.a2)}</textarea>
+    <label>¿Qué vas a cambiar la semana que viene?</label>
+    <textarea id="revA3" placeholder="…">${escapeHtml(rev.a3)}</textarea>
+    <button class="btn" style="margin-top:14px" onclick="saveReview('${key}')">Guardar revisión</button>
+  `;
+}
+
+function saveReview(key){
+  state.reviews[key] = {
+    a1: document.getElementById("revA1").value.trim(),
+    a2: document.getElementById("revA2").value.trim(),
+    a3: document.getElementById("revA3").value.trim(),
+    savedAt: Date.now()
+  };
+  save();
+  toast("Revisión guardada");
+}
+
+let financeSubView = "certs";
+let editingCertType = "eval";
+let editingCertId = null;
+let editingCertPhoto = null;
+let editingExpenseType = "eval";
+let editingExpenseId = null;
+
+function renderFinance(){
+  const el = document.getElementById("view-certs");
+  const totalFunded = state.certs.filter(c=>c.type==="eval").reduce((a,c)=>a+(c.amount||0),0);
+  const totalPaid = state.certs.filter(c=>c.type==="payout").reduce((a,c)=>a+(c.amount||0),0);
+  const totalSpent = state.expenses.reduce((a,e)=>a+(e.amount||0),0);
+  const net = totalPaid - totalSpent;
+
+  let html = `
+    <div class="grid2" style="margin-bottom:8px">
+      <div class="card" style="margin-bottom:0"><div class="meta">Fondeado</div><h3 class="money">$${totalFunded.toFixed(2)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Pagado</div><h3 class="money">$${totalPaid.toFixed(2)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Gastado</div><h3 class="money">$${totalSpent.toFixed(2)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Neto real</div><h3 class="money">${(net>=0?'$':'-$')+Math.abs(net).toFixed(2)}</h3></div>
+    </div>
+    <div class="segmented" style="margin:12px 0">
+      <button class="${financeSubView==='certs'?'sel':''}" data-r="be" onclick="financeSubView='certs'; renderFinance();">Logros</button>
+      <button class="${financeSubView==='expenses'?'sel':''}" data-r="win" onclick="financeSubView='expenses'; renderFinance();">Gastos</button>
+    </div>`;
+
+  if(financeSubView==="certs"){
+    html += `<div class="top-actions"><button class="iconbtn" onclick="openNewCert()">+ Añadir logro</button></div>`;
+    if(state.certs.length===0){
+      html += `<div class="empty">Cada eval superada y cada payout cobrado aparecerán aquí.</div>`;
+    }else{
+      [...state.certs].sort((a,b)=>b.date-a.date).forEach(c=>{
+        const acc = c.accountId? state.accounts.find(a=>a.id===c.accountId) : null;
+        html += `
+          <div class="card" onclick="openEditCert('${c.id}')">
+            ${c.photo? `<img src="${c.photo}" class="cover">` : ''}
+            <h3>${c.type==='eval'?'🎓 Eval superada':'💰 Payout cobrado'}</h3>
+            <div class="meta">${acc? escapeHtml(acc.name)+' · ':''}${fmtDate(c.date)}</div>
+            <div class="rowstats"><div>${c.type==='eval'?'Capital':'Importe'}<strong class="money">$${(c.amount||0).toFixed(2)}</strong></div></div>
+            ${c.note? `<div class="meta" style="margin-top:6px">${escapeHtml(c.note)}</div>`:''}
+          </div>`;
+      });
+    }
+  }else{
+    html += `<div class="top-actions"><button class="iconbtn" onclick="openNewExpense()">+ Añadir gasto</button></div>`;
+    if(state.expenses.length===0){
+      html += `<div class="empty">Evals, resets, activaciones y suscripciones aparecerán aquí.</div>`;
+    }else{
+      [...state.expenses].sort((a,b)=>b.date-a.date).forEach(e=>{
+        const acc = e.accountId? state.accounts.find(a=>a.id===e.accountId) : null;
+        html += `
+          <div class="card" onclick="openEditExpense('${e.id}')">
+            <h3>${escapeHtml(expenseLabel(e.type))}${e.recurring?' · mensual 🔁':''}</h3>
+            <div class="meta">${acc? escapeHtml(acc.name)+' · ':''}${fmtDate(e.date)}</div>
+            <div class="rowstats"><div>Importe<strong class="money">$${(e.amount||0).toFixed(2)}</strong></div></div>
+            ${e.note? `<div class="meta" style="margin-top:6px">${escapeHtml(e.note)}</div>`:''}
+          </div>`;
+      });
+    }
+  }
+  el.innerHTML = html;
+}
+
+function expenseLabel(t){
+  return {eval:"Eval / challenge", reset:"Reset", activation:"Activación", subscription:"Suscripción", other:"Otro"}[t] || t;
+}
+
+function openNewCert(){ editingCertId=null; editingCertType="eval"; editingCertPhoto=null; document.getElementById("view-certs").innerHTML = certFormHtml(); bindCertForm(); }
+function openEditCert(id){
+  editingCertId=id;
+  const c = state.certs.find(x=>x.id===id);
+  editingCertType = c.type;
+  editingCertPhoto = c.photo || null;
+  document.getElementById("view-certs").innerHTML = certFormHtml();
+  bindCertForm();
+}
+
+function certFormHtml(){
+  const c = editingCertId? state.certs.find(x=>x.id===editingCertId): null;
+  const type = editingCertType;
+  const accOptions = `<option value="">Sin cuenta</option>` + state.accounts.map(a=>`<option value="${a.id}" ${c&&c.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join("");
+  return `
+    <label>Tipo de logro</label>
+    <div class="segmented">
+      <button class="${type==='eval'?'sel':''}" data-r="be" onclick="editingCertType='eval'; document.getElementById('view-certs').innerHTML=certFormHtml(); bindCertForm();">Eval superada</button>
+      <button class="${type==='payout'?'sel':''}" data-r="win" onclick="editingCertType='payout'; document.getElementById('view-certs').innerHTML=certFormHtml(); bindCertForm();">Payout</button>
+    </div>
+    <label>Cuenta</label>
+    <select id="certAccount">${accOptions}</select>
+    <label>${type==='eval'?'Capital fondeado ($)':'Importe del payout ($)'}</label>
+    <input type="number" step="1" id="certAmount" value="${c&&c.amount!=null?c.amount:''}" placeholder="Ej. 50000">
+    <label>Nota (opcional)</label>
+    <input type="text" id="certNote" value="${c?escapeHtml(c.note||''):''}" placeholder="Ej. Segundo intento">
+    <label>Foto (opcional)</label>
+    <input type="file" accept="image/*" id="certPhotoInput">
+    ${editingCertPhoto? `<img src="${editingCertPhoto}" class="cover" style="margin-top:8px">` : ""}
+    <button class="btn" style="margin-top:14px" onclick="saveCert()">${c?'Guardar cambios':'Añadir logro'}</button>
+    ${c?'<button class="btn danger" style="margin-top:8px" onclick="deleteCert()">Eliminar</button>':''}
+    <button class="btn secondary" style="margin-top:8px" onclick="renderFinance()">Cancelar</button>
+  `;
+}
+
+function bindCertForm(){
+  const input = document.getElementById("certPhotoInput");
+  if(!input) return;
+  input.addEventListener("change", async e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      editingCertPhoto = await compressImage(file, 900, 0.6);
+      document.getElementById("view-certs").innerHTML = certFormHtml();
+    }catch(err){ console.error(err); toast("No se pudo procesar la imagen"); }
+  });
+}
+
+function saveCert(){
+  const amountRaw = document.getElementById("certAmount").value;
+  const amount = amountRaw? parseFloat(amountRaw) : 0;
+  const accountId = document.getElementById("certAccount").value || null;
+  const note = document.getElementById("certNote").value.trim();
+  if(editingCertId){
+    const c = state.certs.find(x=>x.id===editingCertId);
+    c.type=editingCertType; c.accountId=accountId; c.amount=amount; c.note=note; c.photo=editingCertPhoto;
+  }else{
+    state.certs.push({id:uid(), type:editingCertType, accountId, amount, note, photo:editingCertPhoto, date:Date.now()});
+  }
+  save();
+  editingCertPhoto = null;
+  toast("Logro guardado");
+  renderFinance();
+}
+
+function deleteCert(){
+  state.certs = state.certs.filter(x=>x.id!==editingCertId);
+  save();
+  toast("Logro eliminado");
+  renderFinance();
+}
+
+function openNewExpense(){ editingExpenseId=null; editingExpenseType="eval"; document.getElementById("view-certs").innerHTML = expenseFormHtml(); }
+function openEditExpense(id){
+  editingExpenseId=id;
+  editingExpenseType = state.expenses.find(x=>x.id===id).type;
+  document.getElementById("view-certs").innerHTML = expenseFormHtml();
+}
+
+function expenseFormHtml(){
+  const e = editingExpenseId? state.expenses.find(x=>x.id===editingExpenseId): null;
+  const types = ["eval","reset","activation","subscription","other"];
+  const typeOptions = types.map(t=>`<option value="${t}" ${editingExpenseType===t?'selected':''}>${expenseLabel(t)}</option>`).join("");
+  const accOptions = `<option value="">Sin cuenta</option>` + state.accounts.map(a=>`<option value="${a.id}" ${e&&e.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join("");
+  return `
+    <label>Tipo de gasto</label>
+    <select id="expType" onchange="editingExpenseType=this.value;">${typeOptions}</select>
+    <label>Cuenta</label>
+    <select id="expAccount">${accOptions}</select>
+    <label>Importe ($)</label>
+    <input type="number" step="0.01" id="expAmount" value="${e&&e.amount!=null?e.amount:''}" placeholder="Ej. 65">
+    <label class="chk" style="border:none; padding:4px 0">
+      <input type="checkbox" id="expRecurring" ${e&&e.recurring?'checked':''}>
+      <span>Es un gasto mensual recurrente</span>
+    </label>
+    <label>Nota (opcional)</label>
+    <input type="text" id="expNote" value="${e?escapeHtml(e.note||''):''}" placeholder="Ej. Reset tras romper regla diaria">
+    <button class="btn" style="margin-top:10px" onclick="saveExpense()">${e?'Guardar cambios':'Añadir gasto'}</button>
+    ${e?'<button class="btn danger" style="margin-top:8px" onclick="deleteExpense()">Eliminar</button>':''}
+    <button class="btn secondary" style="margin-top:8px" onclick="renderFinance()">Cancelar</button>
+  `;
+}
+
+function saveExpense(){
+  const type = document.getElementById("expType").value;
+  const accountId = document.getElementById("expAccount").value || null;
+  const amountRaw = document.getElementById("expAmount").value;
+  const amount = amountRaw? parseFloat(amountRaw) : 0;
+  const recurring = document.getElementById("expRecurring").checked;
+  const note = document.getElementById("expNote").value.trim();
+  if(editingExpenseId){
+    const e = state.expenses.find(x=>x.id===editingExpenseId);
+    e.type=type; e.accountId=accountId; e.amount=amount; e.recurring=recurring; e.note=note;
+  }else{
+    state.expenses.push({id:uid(), type, accountId, amount, recurring, note, date:Date.now()});
+  }
+  save();
+  toast("Gasto guardado");
+  renderFinance();
+}
+
+function deleteExpense(){
+  state.expenses = state.expenses.filter(x=>x.id!==editingExpenseId);
+  save();
+  toast("Gasto eliminado");
+  renderFinance();
+}
+
+function renderStats(){
+  const el = document.getElementById("view-stats");
+  const tradeEntries = state.trades.filter(t=>t.hadTrade);
+  if(tradeEntries.length===0){
+    el.innerHTML = `<div class="empty">Registra algún día con trade para ver estadísticas.</div>`;
+    return;
+  }
+  const wins = tradeEntries.filter(t=>tradeOutcome(t)==='win').length;
+  const losses = tradeEntries.filter(t=>tradeOutcome(t)==='loss').length;
+  const decisive = wins+losses;
+  const winrate = decisive? Math.round((wins/decisive)*100) : 0;
+  const pnlVals = state.trades.filter(t=>t.pnl!=null).map(t=>t.pnl);
+  const totalPnl = pnlVals.reduce((a,b)=>a+b,0);
+  const rrVals = tradeEntries.filter(t=>t.rrTarget!=null).map(t=>t.rrTarget);
+  const avgRR = rrVals.length? (rrVals.reduce((a,b)=>a+b,0)/rrVals.length).toFixed(2) : '—';
+
+  const resultCounts = {TP:0,SL:0,BE:0,TIME:0};
+  tradeEntries.forEach(t=>{ if(t.result && resultCounts[t.result]!=null) resultCounts[t.result]++; });
+  const ratingCounts = {malo:0,meh:0,perfecto:0};
+  state.trades.forEach(t=>{ if(t.rating && ratingCounts[t.rating]!=null) ratingCounts[t.rating]++; });
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="meta">General</div>
+      <div class="rowstats">
+        <div>Trades<strong>${tradeEntries.length}</strong></div>
+        <div>Winrate<strong>${decisive? winrate+'%':'—'}</strong></div>
+        <div>P&L<strong class="money">${(totalPnl>=0?'$':'-$')+Math.abs(totalPnl).toFixed(2)}</strong></div>
+        <div>RR medio<strong>${avgRR}</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="meta">Resultados</div>
+      <div class="rowstats">
+        <div>TP<strong>${resultCounts.TP}</strong></div>
+        <div>SL<strong>${resultCounts.SL}</strong></div>
+        <div>BE<strong>${resultCounts.BE}</strong></div>
+        <div>TIME<strong>${resultCounts.TIME}</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="meta">Valoración de los días</div>
+      <div class="rowstats">
+        <div>Malo<strong>${ratingCounts.malo}</strong></div>
+        <div>Meh<strong>${ratingCounts.meh}</strong></div>
+        <div>Perfecto<strong>${ratingCounts.perfecto}</strong></div>
+      </div>
+    </div>
+  `;
+}
+
+// ---------- init ----------
+load().then(() => {
+  initPrivacy();
+  renderLog();
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
