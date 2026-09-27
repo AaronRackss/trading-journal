@@ -159,9 +159,9 @@
     background:var(--surface); color:var(--text-dim); font-weight:650; font-size:13.5px;
     cursor:pointer; font-family:inherit;
   }
-  .segmented button.sel[data-r="win"]{background:var(--win-soft); color:var(--win); border-color:var(--win);}
-  .segmented button.sel[data-r="loss"]{background:var(--loss-soft); color:var(--loss); border-color:var(--loss);}
-  .segmented button.sel[data-r="be"]{background:var(--be-soft); color:var(--be); border-color:var(--be);}
+  .segmented button.sel[data-r="win"]{background:rgba(76, 193, 126, 0.2); color:var(--win); border-color:var(--win);}
+  .segmented button.sel[data-r="loss"]{background:rgba(226, 100, 95, 0.2); color:var(--loss); border-color:var(--loss);}
+  .segmented button.sel[data-r="be"]{background:rgba(35, 131, 226, 0.2); color:var(--accent); border-color:var(--accent);}
   .segmented button.sel[data-r="active"]{background:var(--be-soft); color:var(--be); border-color:var(--be);}
   .segmented button.sel[data-r="eval"]{background:var(--eval-soft); color:var(--eval); border-color:var(--eval);}
   .segmented button.sel[data-r="buffer"]{background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);}
@@ -242,7 +242,7 @@ const SUPABASE_URL = "https://ebyktlxyadyxlbpwwjxf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Fzxd2AvJ8V_aU8zf1bWGGg_3mt2skUK";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let state = { setups: [], trades: [], accounts: [], reviews: {}, certs: [], expenses: [] };
+let state = { setups: [], trades: [], accounts: [], reviews: {}, certs: [], expenses: [], pendingPayouts: [] };
 let editingAccountId = null;
 let accountsFilter = "Total";
 
@@ -269,6 +269,7 @@ async function load(){
   if(!state.reviews) state.reviews = {};
   if(!state.certs) state.certs = [];
   if(!state.expenses) state.expenses = [];
+  if(!state.pendingPayouts) state.pendingPayouts = [];
 }
 function togglePrivacy(){
   const isPrivacyActive = document.body.classList.contains("privacy");
@@ -947,23 +948,32 @@ let editingCertId = null;
 let editingCertPhoto = null;
 let editingExpenseType = "eval";
 let editingExpenseId = null;
+let editingPendingId = null;
 
 function renderFinance(){
   const el = document.getElementById("view-certs");
   const totalFunded = state.certs.filter(c=>c.type==="eval").reduce((a,c)=>a+(c.amount||0),0);
-  const totalPaid = state.certs.filter(c=>c.type==="payout").reduce((a,c)=>a+(c.amount||0),0);
+  const paidFromCerts = state.certs.filter(c=>c.type==="payout").reduce((a,c)=>a+(c.amount||0),0);
+  const paidFromPending = state.pendingPayouts.filter(p=>p.status==="cobrado").reduce((a,p)=>a+(p.amountUSD||0),0);
+  const totalPaid = paidFromCerts + paidFromPending;
   const totalSpent = state.expenses.reduce((a,e)=>a+(e.amount||0),0);
+  const totalPending = state.pendingPayouts.filter(p=>p.status==="pendiente").reduce((a,p)=>a+(p.amountUSD||0),0);
   const net = totalPaid - totalSpent;
+
+
+
 
   let html = `
     <div class="grid2" style="margin-bottom:8px">
       <div class="card" style="margin-bottom:0"><div class="meta">Fondeado</div><h3 class="money">$${totalFunded.toFixed(2)}</h3></div>
       <div class="card" style="margin-bottom:0"><div class="meta">Pagado</div><h3 class="money">$${totalPaid.toFixed(2)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Pendiente</div><h3 class="money">$${totalPending.toFixed(2)}</h3></div>
       <div class="card" style="margin-bottom:0"><div class="meta">Gastado</div><h3 class="money">$${totalSpent.toFixed(2)}</h3></div>
       <div class="card" style="margin-bottom:0"><div class="meta">Neto real</div><h3 class="money ${net>=0?'pos':'neg'}">${(net>=0?'$':'-$')+Math.abs(net).toFixed(2)}</h3></div>
     </div>
     <div class="segmented" style="margin:12px 0">
       <button class="${financeSubView==='certs'?'sel':''}" data-r="win" onclick="financeSubView='certs'; renderFinance();">Logros</button>
+      <button class="${financeSubView==='pending'?'sel':''}" data-r="be" onclick="financeSubView='pending'; renderFinance();">Retiros</button>
       <button class="${financeSubView==='expenses'?'sel':''}" data-r="loss" onclick="financeSubView='expenses'; renderFinance();">Gastos</button>
     </div>`;
 
@@ -987,21 +997,75 @@ function renderFinance(){
           </div>`;
       });
     }
+  }else if(financeSubView==="pending"){
+    html += `<div class="top-actions"><button class="iconbtn" onclick="openNewPending()">+ Añadir Retiro</button></div>`;
+    if(state.pendingPayouts.length===0){
+      html += `<div class="empty">No hay retiros registrados.</div>`;
+    }else{
+      let totalRetiradoUSD = 0;
+      let totalRetiradoEUR = 0;
+      [...state.pendingPayouts].sort((a,b)=>b.date-a.date).forEach(p=>{
+        const acc = p.accountId? state.accounts.find(a=>a.id===p.accountId) : null;
+        const statusIcon = {
+          'pendiente': '⏳',
+          'cobrado': '✅',
+          'denegado': '❌'
+        }[p.status] || '⏳';
+
+        if(p.status === 'cobrado') {
+          totalRetiradoUSD += (p.amountUSD || 0);
+          totalRetiradoEUR += (p.amountEUR || 0);
+        }
+
+        html += `
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+              <h3 style="margin:0">Retiro</h3>
+              <span style="cursor:pointer; font-size:16px; color:var(--text)" onclick="openEditPending('${p.id}')">⚙️</span>
+            </div>
+            <div class="meta">${acc? escapeHtml(acc.name)+' · ' + escapeHtml(acc.firm) + ' · $' + (acc.size||0).toLocaleString() + ' · ':''}${p.date || 'Sin fecha'}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px">
+              <div class="rowstats" style="margin-top:0">
+                <div>Importe<strong class="money">$${(p.amountUSD||0).toFixed(2)} · €${(p.amountEUR||0).toFixed(2)}</strong></div>
+              </div>
+              <div style="font-size:12px; font-weight:700; color:var(--text-dim); display:flex; align-items:center; gap:4px">
+                ${statusIcon} ${p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+              </div>
+            </div>
+            ${p.note? `<div class="meta" style="margin-top:6px">${escapeHtml(p.note)}</div>`:''}
+          </div>`;
+      });
+      html += `
+        <div class="card" style="background:var(--accent-soft); border-color:var(--accent); text-align:center">
+          <div class="meta" style="color:var(--accent)">Total Retirado (Cobrado)</div>
+          <h3 class="money" style="font-size:20px">$${totalRetiradoUSD.toFixed(2)} · €${totalRetiradoEUR.toFixed(2)}</h3>
+        </div>`;
+    }
   }else{
     html += `<div class="top-actions"><button class="iconbtn" onclick="openNewExpense()">+ Añadir gasto</button></div>`;
     if(state.expenses.length===0){
       html += `<div class="empty">Evals, resets, activaciones y suscripciones aparecerán aquí.</div>`;
     }else{
+      let totalSpentAccum = 0;
       [...state.expenses].sort((a,b)=>b.date-a.date).forEach(e=>{
         const acc = e.accountId? state.accounts.find(a=>a.id===e.accountId) : null;
+        totalSpentAccum += (e.amountUSD || 0);
         html += `
-          <div class="card" onclick="openEditExpense('${e.id}')">
-            <h3>${escapeHtml(expenseLabel(e.type))}${e.recurring?' · mensual 🔁':''}</h3>
-            <div class="meta">${acc? escapeHtml(acc.name)+' · ':''}${fmtDate(e.date)}</div>
-            <div class="rowstats"><div>Importe<strong class="money">$${(e.amount||0).toFixed(2)}</strong></div></div>
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+              <h3 style="margin:0">${escapeHtml(expenseLabel(e.type))}${e.recurring?' · mensual 🔁':''}</h3>
+              <span style="cursor:pointer; font-size:16px; color:var(--text)" onclick="openEditExpense('${e.id}')">⚙️</span>
+            </div>
+            <div class="meta">${acc? escapeHtml(acc.name)+' · ' + escapeHtml(acc.firm) + ' · $' + (acc.size||0).toLocaleString() + ' · ':''}${fmtDate(e.date)}</div>
+            <div class="rowstats"><div>Importe<strong class="money" style="color:var(--text)">$${(e.amountUSD||0).toFixed(2)} · €${(e.amountEUR||0).toFixed(2)}</strong></div></div>
             ${e.note? `<div class="meta" style="margin-top:6px">${escapeHtml(e.note)}</div>`:''}
           </div>`;
       });
+      html += `
+        <div class="card" style="background:rgba(209, 67, 67, 0.2); border-color:var(--loss); text-align:center">
+          <div class="meta" style="color:var(--text)">Total Invertido (Gastos)</div>
+          <h3 class="money" style="font-size:20px; color:var(--text)">$${totalSpentAccum.toFixed(2)}</h3>
+        </div>`;
     }
   }
   el.innerHTML = html;
@@ -1094,8 +1158,16 @@ function expenseFormHtml(){
     <select id="expType" onchange="editingExpenseType=this.value;">${typeOptions}</select>
     <label>Cuenta</label>
     <select id="expAccount">${accOptions}</select>
-    <label>Importe ($)</label>
-    <input type="number" step="0.01" id="expAmount" value="${e&&e.amount!=null?e.amount:''}" placeholder="Ej. 65">
+    <div class="grid2">
+      <div>
+        <label>Importe ($)</label>
+        <input type="number" step="0.01" id="expAmountUSD" value="${e&&e.amountUSD!=null?e.amountUSD:''}" placeholder="Ej. 65">
+      </div>
+      <div>
+        <label>Importe (€)</label>
+        <input type="number" step="0.01" id="expAmountEUR" value="${e&&e.amountEUR!=null?e.amountEUR:''}" placeholder="Ej. 60">
+      </div>
+    </div>
     <label class="chk" style="border:none; padding:4px 0">
       <input type="checkbox" id="expRecurring" ${e&&e.recurring?'checked':''}>
       <span>Es un gasto mensual recurrente</span>
@@ -1110,28 +1182,83 @@ function expenseFormHtml(){
 function saveExpense(){
   const type = document.getElementById("expType").value;
   const accountId = document.getElementById("expAccount").value || null;
-  const amountRaw = document.getElementById("expAmount").value;
-  const amount = amountRaw? parseFloat(amountRaw) : 0;
+  const amountUSD = document.getElementById("expAmountUSD").value;
+  const amountEUR = document.getElementById("expAmountEUR").value;
   const recurring = document.getElementById("expRecurring").checked;
   const note = document.getElementById("expNote").value.trim();
+  if(!accountId || !amountUSD || !amountEUR){ toast("Completa los campos obligatorios"); return; }
   if(editingExpenseId){
     const e = state.expenses.find(x=>x.id===editingExpenseId);
-    e.type=type; e.accountId=accountId; e.amount=amount; e.recurring=recurring; e.note=note;
+    e.type=type; e.accountId=accountId; e.amountUSD=parseFloat(amountUSD); e.amountEUR=parseFloat(amountEUR); e.recurring=recurring; e.note=note;
   }else{
-    state.expenses.push({id:uid(), type, accountId, amount, recurring, note, date:Date.now()});
+    state.expenses.push({id:uid(), type, accountId, amountUSD:parseFloat(amountUSD), amountEUR:parseFloat(amountEUR), recurring, note, date:Date.now()});
   }
   save();
   toast("Gasto guardado");
   renderFinance();
 }
-function deleteExpense(){
-  state.expenses = state.expenses.filter(x=>x.id!==editingExpenseId);
+function openNewPending(){ editingPendingId=null; document.getElementById("view-certs").innerHTML = pendingPayoutFormHtml(); }
+function openEditPending(id){
+  editingPendingId=id;
+  document.getElementById("view-certs").innerHTML = pendingPayoutFormHtml();
+}
+function pendingPayoutFormHtml(){
+  const p = editingPendingId? state.pendingPayouts.find(x=>x.id===editingPendingId): null;
+  const accOptions = `<option value="">Sin cuenta</option>` + state.accounts.map(a=>`<option value="${a.id}" ${p&&p.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join("");
+  const statusOptions = `
+    <option value="pendiente" ${p&&p.status==='pendiente'?'selected':''}>⏳ Pendiente</option>
+    <option value="cobrado" ${p&&p.status==='cobrado'?'selected':''}>✅ Cobrado</option>
+    <option value="denegado" ${p&&p.status==='denegado'?'selected':''}>❌ Denegado</option>
+  `;
+  return `
+    <label>Cuenta</label>
+    <select id="penAcc">${accOptions}</select>
+    <label>Estado</label>
+    <select id="penStatus">${statusOptions}</select>
+    <label>Fecha estimada de cobro</label>
+    <input type="date" id="penDate" value="${p? p.date : ''}">
+    <div class="grid2">
+      <div>
+        <label>Importe ($)</label>
+        <input type="number" step="0.01" id="penAmountUSD" value="${p&&p.amountUSD!=null?p.amountUSD:''}" placeholder="Ej. 1500">
+      </div>
+      <div>
+        <label>Importe (€)</label>
+        <input type="number" step="0.01" id="penAmountEUR" value="${p&&p.amountEUR!=null?p.amountEUR:''}" placeholder="Ej. 1380">
+      </div>
+    </div>
+    <label>Nota (opcional)</label>
+    <input type="text" id="penNote" value="${p?escapeHtml(p.note||''):''}" placeholder="Ej. Payout primera fase">
+    <button class="btn" style="margin-top:14px" onclick="savePending()">${p?'Guardar cambios':'Añadir pendiente'}</button>
+    ${p?'<button class="btn danger" style="margin-top:8px" onclick="deletePending()">Eliminar</button>':''}
+    <button class="btn secondary" style="margin-top:8px" onclick="renderFinance()">Cancelar</button>
+  `;
+}
+function savePending(){
+  const accountId = document.getElementById("penAcc").value || null;
+  const status = document.getElementById("penStatus").value;
+  const date = document.getElementById("penDate").value;
+  const amountUSD = document.getElementById("penAmountUSD").value;
+  const amountEUR = document.getElementById("penAmountEUR").value;
+  const note = document.getElementById("penNote").value.trim();
+  if(!accountId || !date || !amountUSD || !amountEUR){ toast("Completa los campos obligatorios"); return; }
+  if(editingPendingId){
+    const p = state.pendingPayouts.find(x=>x.id===editingPendingId);
+    p.accountId=accountId; p.status=status; p.date=date; p.amountUSD=parseFloat(amountUSD); p.amountEUR=parseFloat(amountEUR); p.note=note;
+  }else{
+    state.pendingPayouts.push({id:uid(), accountId, status, date, amountUSD:parseFloat(amountUSD), amountEUR:parseFloat(amountEUR), note, createdAt:Date.now()});
+  }
   save();
-  toast("Gasto eliminado");
+  toast("Payout pendiente guardado");
+  renderFinance();
+}
+function deletePending(){
+  state.pendingPayouts = state.pendingPayouts.filter(x=>x.id!==editingPendingId);
+  save();
+  toast("Payout eliminado");
   renderFinance();
 }
 
-// ---------- History view ----------
 function renderHistory(tradeId = null) {
   const el = document.getElementById("view-history");
 
