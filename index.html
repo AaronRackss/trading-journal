@@ -275,6 +275,8 @@ function togglePrivacy(){
   const nextState = !isPrivacyActive;
   document.body.classList.toggle("privacy", nextState);
   const btn = document.getElementById("privacyBtn");
+  // Si la privacidad está ACTIVA (nextState=true), mostramos el ojo tachado (eye-off)
+  // Si la privacidad está INACTIVA (nextState=false), mostramos el ojo abierto (eye)
   btn.innerHTML = nextState ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>';
   lucide.createIcons();
   try{ localStorage.setItem("mfb_privacy", nextState?"1":"0"); }catch(e){}
