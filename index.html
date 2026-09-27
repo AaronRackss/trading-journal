@@ -15,6 +15,10 @@
     --win:#2F9E58; --win-soft:#E2F3E7;
     --loss:#D14343; --loss-soft:#FBE6E6;
     --be:#8A8F99; --be-soft:#EDEEF0;
+    --eval:#2383E2; --eval-soft:#1A2B3C;
+    --buffer:#F5A623; --buffer-soft:#3D2D15;
+    --funded:#2F9E58; --funded-soft:#173125;
+    --failed:#D14343; --failed-soft:#331A1A;
     padding-top:env(safe-area-inset-top,0px);
     padding-bottom:env(safe-area-inset-bottom,0px);
   }
@@ -38,23 +42,22 @@
   }
   html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
   *{box-sizing:border-box;}
-     body{
-    margin:0; padding:0; height:100vh; width:100vw; background:#000; color:var(--text);
+  body{
+    margin:0; height:100vh; background:#000; color:var(--text);
     font-family:-apple-system, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing:antialiased;
     display:flex; justify-content:center; align-items:center;
-    overflow:hidden; position:fixed; touch-action: none;
+    overflow:hidden;
   }
-    .app{
+  .app{
     display:flex; flex-direction:column;
     height:100vh; width:100vw;
     background:var(--bg);
     position:relative; overflow:hidden;
-    box-sizing: border-box;
   }
   @media (min-width: 400px) {
     .app {
-      height: 844px; width: 390px; /* Dimensiones exactas iPhone 13 Pro */
+      height: 812px; width: 375px;
       border: 12px solid #000; border-radius: 40px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     }
@@ -67,11 +70,10 @@
   header h1{margin:0; font-size:22px; font-weight:700; letter-spacing:-0.01em;}
   header p{margin:2px 0 0; font-size:13px; color:var(--text-dim);}
   main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 8px;}
-      nav{
+  nav{
     display:flex; flex-shrink:0; border-top:1px solid var(--border);
     background:var(--surface);
-    padding-bottom:calc(env(safe-area-inset-bottom, 20px) + 25px);
-    padding-top: 10px;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
     z-index: 10;
   }
   nav button{
@@ -138,14 +140,33 @@
   .checklist label.chk:last-child{border-bottom:none;}
   .checklist input[type=checkbox]{width:19px; height:19px; margin-top:1px; accent-color:var(--accent); flex-shrink:0;}
   .segmented{display:flex; gap:8px; margin-bottom:2px;}
+  .segmented.sticky-tabs{
+    position: relative; z-index: 10;
+    background: var(--bg);
+    padding: 8px 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    display: flex;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .segmented.sticky-tabs::-webkit-scrollbar {
+    display: none;
+  }
   .segmented button{
-    flex:1; padding:10px 6px; border-radius:8px; border:1px solid var(--border);
+    flex: 0 0 auto; padding:10px 12px; border-radius:8px; border:1px solid var(--border);
     background:var(--surface); color:var(--text-dim); font-weight:650; font-size:13.5px;
     cursor:pointer; font-family:inherit;
   }
   .segmented button.sel[data-r="win"]{background:var(--win-soft); color:var(--win); border-color:var(--win);}
   .segmented button.sel[data-r="loss"]{background:var(--loss-soft); color:var(--loss); border-color:var(--loss);}
   .segmented button.sel[data-r="be"]{background:var(--be-soft); color:var(--be); border-color:var(--be);}
+  .segmented button.sel[data-r="active"]{background:var(--be-soft); color:var(--be); border-color:var(--be);}
+  .segmented button.sel[data-r="eval"]{background:var(--eval-soft); color:var(--eval); border-color:var(--eval);}
+  .segmented button.sel[data-r="buffer"]{background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);}
+  .segmented button.sel[data-r="funded"]{background:var(--funded-soft); color:var(--funded); border-color:var(--funded);}
+  .segmented button.sel[data-r="failed"]{background:var(--failed-soft); color:var(--failed); border-color:var(--failed);}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .top-actions{display:flex; justify-content:flex-end; margin-bottom:10px;}
   .iconbtn{
@@ -153,8 +174,12 @@
     padding:8px 14px; font-weight:650; font-size:14px; cursor:pointer; font-family:inherit;
   }
   .badge{
-    display:inline-block; font-size:11.5px; font-weight:650; padding:2px 8px; border-radius:20px;
+    display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px; text-transform: uppercase;
   }
+  .badge.eval{background:var(--eval-soft); color:var(--eval);}
+  .badge.buffer{background:var(--buffer-soft); color:var(--buffer);}
+  .badge.funded{background:var(--funded-soft); color:var(--funded);}
+  .badge.failed{background:var(--failed-soft); color:var(--failed);}
   .badge.win{background:var(--win-soft); color:var(--win);}
   .badge.loss{background:var(--loss-soft); color:var(--loss);}
   .toast{
@@ -166,6 +191,8 @@
   .toast.show{opacity:1;}
   .privacy-btn{background:none; border:none; font-size:19px; cursor:pointer; padding:6px; margin-top:2px; color:var(--text); display:flex; align-items:center; justify-content:center;}
   .money{transition:filter .15s;}
+  .money.pos{color:var(--win);}
+  .money.neg{color:var(--loss);}
   body.privacy .money{filter:blur(6px); user-select:none;}
   .bar{background:var(--bg); border:1px solid var(--border); border-radius:6px; height:7px; overflow:hidden; margin-top:4px;}
   .bar > div{height:100%; background:var(--accent);}
@@ -203,7 +230,7 @@
     <button data-view="log" class="active"><i data-lucide="book-open"></i>Registro</button>
     <button data-view="review"><i data-lucide="calendar-range"></i>Revisión</button>
     <button data-view="certs"><i data-lucide="coins"></i>Finanzas</button>
-    <button data-view="stats"><i data-lucide="bar-chart-3"></i>Stats</button>
+    <button data-view="stats" class="active"><i data-lucide="bar-chart-3"></i>Stats</button>
   </nav>
 </div>
 <div class="toast" id="toast"></div>
@@ -217,6 +244,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let state = { setups: [], trades: [], accounts: [], reviews: {}, certs: [], expenses: [] };
 let editingAccountId = null;
+let accountsFilter = "Total";
 
 async function load(){
   try{
@@ -242,7 +270,6 @@ async function load(){
   if(!state.certs) state.certs = [];
   if(!state.expenses) state.expenses = [];
 }
-
 function togglePrivacy(){
   const on = !document.body.classList.contains("privacy");
   document.body.classList.toggle("privacy", on);
@@ -251,7 +278,6 @@ function togglePrivacy(){
   lucide.createIcons();
   try{ localStorage.setItem("mfb_privacy", on?"1":"0"); }catch(e){}
 }
-
 function initPrivacy(){
   let on=false;
   try{ on = localStorage.getItem("mfb_privacy")==="1"; }catch(e){}
@@ -260,7 +286,6 @@ function initPrivacy(){
   btn.innerHTML = on ? '<i data-lucide="eye"></i>' : '<i data-lucide="eye-off"></i>';
   lucide.createIcons();
 }
-
 async function save(){
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
@@ -279,7 +304,6 @@ async function save(){
     toast("Error al sincronizar con la nube");
   }
 }
-
 function compressImage(file, maxDim, quality){
   return new Promise((resolve, reject)=>{
     const reader = new FileReader();
@@ -301,7 +325,6 @@ function compressImage(file, maxDim, quality){
     reader.readAsDataURL(file);
   });
 }
-
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function toast(msg){
   const t = document.getElementById("toast");
@@ -326,10 +349,10 @@ document.addEventListener("click", e=>{
   }
 });
 
+// ---------- Nav ----------
 document.querySelectorAll("nav button").forEach(btn=>{
   btn.addEventListener("click", ()=> showView(btn.dataset.view));
 });
-
 function showView(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
@@ -342,6 +365,7 @@ function showView(name){
   if(name==="stats") renderStats();
 }
 
+// ---------- Accounts view ----------
 function tradeOutcome(t){
   if(!t.hadTrade) return null;
   if(t.result==='TP') return 'win';
@@ -354,7 +378,6 @@ function tradeOutcome(t){
   }
   return null;
 }
-
 function accountStats(accountId){
   const acc = state.accounts.find(a=>a.id===accountId);
   const trades = state.trades.filter(t=>t.accountId===accountId);
@@ -369,7 +392,6 @@ function accountStats(accountId){
   const balance = (acc && acc.size!=null)? (acc.size + totalPnl) : null;
   return {count, totalPnl, winrate, balance};
 }
-
 function challengeStats(accountId){
   const acc = state.accounts.find(a=>a.id===accountId);
   const trades = state.trades.filter(t=>t.accountId===accountId && t.pnl!=null).sort((a,b)=>a.date-b.date);
@@ -389,68 +411,123 @@ function challengeStats(accountId){
     todayPnl: dayTotals[todayKey] || 0
   };
 }
-
 function bar(pct, risk){
   const p = Math.max(0, Math.min(100, Math.round(pct)));
   return `<div class="bar${risk?' risk':''}"><div style="width:${p}%"></div></div>`;
 }
-
 function challengeBlockHtml(a){
   if(a.profitTarget==null && a.dailyLossLimit==null && a.maxDrawdown==null && a.minDays==null) return "";
   const cs = challengeStats(a.id);
-  let rows = `<div class="meta" style="margin-top:12px; font-weight:650">Challenge tracker</div>`;
+  let rows = ``;
+
   if(a.profitTarget){
-    rows += `<div class="meta" style="margin-top:8px">Objetivo <span class="money">$${cs.profitSoFar.toFixed(2)}</span> / $${a.profitTarget}</div>${bar((cs.profitSoFar/a.profitTarget)*100)}`;
+    const progress = Math.max(0, Math.min(100, (cs.profitSoFar/a.profitTarget)*100));
+    const remaining = a.profitTarget - cs.profitSoFar;
+    rows += `
+      <div class="meta" style="margin-top:8px; display:flex; justify-content:space-between">
+        <span>Objetivo</span>
+        <span>${remaining > 0 ? 'Faltan $' + remaining.toFixed(2) : '¡Objetivo alcanzado!'}</span>
+      </div>
+      ${bar(progress, false)}
+    `;
   }
   if(a.dailyLossLimit){
-    const used = cs.todayPnl<0? Math.abs(cs.todayPnl) : 0;
-    rows += `<div class="meta" style="margin-top:8px">Pérdida diaria <span class="money">$${used.toFixed(2)}</span> / $${a.dailyLossLimit}</div>${bar((used/a.dailyLossLimit)*100, true)}`;
+    const used = cs.todayPnl < 0 ? Math.abs(cs.todayPnl) : 0;
+    const progress = Math.max(0, Math.min(100, (used/a.dailyLossLimit)*100));
+    const remaining = a.dailyLossLimit - used;
+    rows += `
+      <div class="meta" style="margin-top:8px; display:flex; justify-content:space-between">
+        <span>Pérdida Diaria</span>
+        <span>Límite: $${remaining.toFixed(2)}</span>
+      </div>
+      ${bar(progress, true)}
+    `;
   }
   if(a.maxDrawdown){
-    rows += `<div class="meta" style="margin-top:8px">Drawdown <span class="money">$${cs.drawdownUsed.toFixed(2)}</span> / $${a.maxDrawdown}</div>${bar((cs.drawdownUsed/a.maxDrawdown)*100, true)}`;
+    const progress = Math.max(0, Math.min(100, (cs.drawdownUsed/a.maxDrawdown)*100));
+    const remaining = a.maxDrawdown - cs.drawdownUsed;
+    rows += `
+      <div class="meta" style="margin-top:8px; display:flex; justify-content:space-between">
+        <span>Drawdown Máx.</span>
+        <span>Margen: $${remaining.toFixed(2)}</span>
+      </div>
+      ${bar(progress, true)}
+    `;
   }
   if(a.minDays){
-    rows += `<div class="meta" style="margin-top:8px">Días operados: ${cs.daysTraded} / ${a.minDays}</div>`;
+    rows += `<div class="meta" style="margin-top:8px; display:flex; justify-content:space-between">
+      <span>Días Operados</span>
+      <span>${cs.daysTraded} / ${a.minDays}</span>
+    </div>`;
   }
   return rows;
+}
+function setAccountsFilter(f){
+  accountsFilter = f;
+  renderAccounts();
 }
 
 function renderAccounts(showForm){
   const el = document.getElementById("view-accounts");
   if(showForm){ el.innerHTML = accountFormHtml(); return; }
+
+  let tabsHtml = `
+    <div class="segmented sticky-tabs">
+      <button class="${accountsFilter==='Total'?'sel':''}" onclick="setAccountsFilter('Total')">Total</button>
+      <button class="${accountsFilter==='Active'?'sel':''}" data-r="active" onclick="setAccountsFilter('Active')">Active</button>
+      <button class="${accountsFilter==='Evals'?'sel':''}" data-r="eval" onclick="setAccountsFilter('Evals')">Evals</button>
+      <button class="${accountsFilter==='Buffer'?'sel':''}" data-r="buffer" onclick="setAccountsFilter('Buffer')">Buffer</button>
+      <button class="${accountsFilter==='Fundeds'?'sel':''}" data-r="funded" onclick="setAccountsFilter('Fundeds')">Fundeds</button>
+      <button class="${accountsFilter==='Failed'?'sel':''}" data-r="failed" onclick="setAccountsFilter('Failed')">Failed</button>
+    </div>`;
+
   if(state.accounts.length===0){
-    el.innerHTML = `
+    el.innerHTML = tabsHtml + `
       <div class="empty">Aún no tienes cuentas.<br>Añade tu primera cuenta fondeada o en evaluación.</div>
       <button class="btn" onclick="openNewAccount()">+ Nueva cuenta</button>`;
     return;
   }
-  let html = `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
-  state.accounts.forEach(a=>{
+
+  let filteredAccounts = state.accounts;
+  if(accountsFilter === 'Active') filteredAccounts = state.accounts.filter(a => a.status !== 'Fallida');
+  else if(accountsFilter === 'Evals') filteredAccounts = state.accounts.filter(a => a.status === 'En evaluación');
+  else if(accountsFilter === 'Buffer') filteredAccounts = state.accounts.filter(a => a.status === 'Buffer');
+  else if(accountsFilter === 'Fundeds') filteredAccounts = state.accounts.filter(a => a.status === 'Fondeada');
+  else if(accountsFilter === 'Failed') filteredAccounts = state.accounts.filter(a => a.status === 'Fallida');
+
+  let html = tabsHtml + `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
+
+  filteredAccounts.forEach(a=>{
     const st = accountStats(a.id);
+    const statusClass = a.status === 'En evaluación' ? 'eval' :
+                        a.status === 'Buffer' ? 'buffer' :
+                        a.status === 'Fondeada' ? 'funded' : 'failed';
     html += `
-      <div class="card" onclick="openEditAccount('${a.id}')">
-        <h3>${escapeHtml(a.name)}</h3>
-        <div class="meta">${escapeHtml(a.firm)} · ${escapeHtml(a.status)}</div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+          <h3 style="margin:0; display:flex; align-items:center; gap:8px">${escapeHtml(a.name)}<i data-lucide="edit-3" style="cursor:pointer; width:14px; height:14px; color:var(--text-dim)" onclick="event.stopPropagation(); openEditAccount('${a.id}')"></i></h3>
+          <span class="badge ${statusClass}">${escapeHtml(a.status)}</span>
+        </div>
+        <div class="meta">${escapeHtml(a.firm)}</div>
         <div class="rowstats">
           <div>Balance<strong class="money">${st.balance!=null? '$'+st.balance.toFixed(2) : '—'}</strong></div>
           <div>Trades<strong>${st.count}</strong></div>
           <div>Winrate<strong>${st.count? st.winrate+'%':'—'}</strong></div>
-          <div>P&L<strong class="money">${(st.totalPnl>=0?'$':'-$')+Math.abs(st.totalPnl).toFixed(2)}</strong></div>
+          <div>P&L<strong class="money ${st.totalPnl >= 0 ? 'pos' : 'neg'}">${(st.totalPnl>=0?'$':'-$')+Math.abs(st.totalPnl).toFixed(2)}</strong></div>
         </div>
-        ${a.status==='En evaluación'? challengeBlockHtml(a) : ''}
+        ${challengeBlockHtml(a)}
       </div>`;
   });
   el.innerHTML = html;
+  lucide.createIcons();
 }
-
 function openNewAccount(){ editingAccountId=null; renderAccounts(true); }
 function openEditAccount(id){ editingAccountId=id; renderAccounts(true); }
-
 function accountFormHtml(){
   const a = editingAccountId? state.accounts.find(x=>x.id===editingAccountId): null;
   const firms = ["Apex","Topstep","Tradeify","Lucid Trading","Otra"];
   const firmOptions = firms.map(f=>`<option ${a&&a.firm===f?'selected':''}>${f}</option>`).join("");
-  const statuses = ["En evaluación","Fondeada","Fallida"];
+  const statuses = ["En evaluación","Buffer","Fondeada","Fallida"];
   const statusOptions = statuses.map(s=>`<option ${a&&a.status===s?'selected':''}>${s}</option>`).join("");
   return `
     <label>Nombre de la cuenta</label>
@@ -474,7 +551,6 @@ function accountFormHtml(){
     <button class="btn secondary" style="margin-top:8px" onclick="renderAccounts()">Cancelar</button>
   `;
 }
-
 function saveAccount(){
   const name = document.getElementById("accName").value.trim();
   if(!name){ toast("Ponle un nombre a la cuenta"); return; }
@@ -496,7 +572,6 @@ function saveAccount(){
   toast("Cuenta guardada");
   renderAccounts();
 }
-
 function deleteAccount(){
   state.accounts = state.accounts.filter(x=>x.id!==editingAccountId);
   state.trades.forEach(t=>{ if(t.accountId===editingAccountId) t.accountId=null; });
@@ -505,6 +580,7 @@ function deleteAccount(){
   renderAccounts();
 }
 
+// ---------- Daily journal (Registro) ----------
 let logDay = null;
 let logHadTrade = true;
 let logSelectedAccount = "";
@@ -514,14 +590,12 @@ let logRating = null;
 let logPhotoPreview = null;
 let logDraft = {};
 const LOG_FIELD_IDS = ['logSessionStart','logSessionEnd','logExecTime','logNews','logPnl','logPnlPct','logRisk','logRiskPct','logRR','logStrategy','logTimeframe','logBeMoment','logNotes','logFeeling','logMistakes'];
-
 function captureLogDraft(){
   LOG_FIELD_IDS.forEach(id=>{
     const el = document.getElementById(id);
     if(el) logDraft[id] = el.value;
   });
 }
-
 function weekMonthLabel(dayStr){
   const ts = new Date(dayStr+"T12:00:00").getTime();
   const wStart = startOfWeek(ts);
@@ -530,7 +604,6 @@ function weekMonthLabel(dayStr){
   month = month.charAt(0).toUpperCase()+month.slice(1);
   return { week:`Semana del ${fmtDate(wStart.getTime())} al ${fmtDate(wEnd.getTime())}`, month };
 }
-
 function calcPnlPct(){
   const amtEl = document.getElementById("logPnl");
   const pctEl = document.getElementById("logPnlPct");
@@ -541,7 +614,6 @@ function calcPnlPct(){
     pctEl.value = ((val/acc.size)*100).toFixed(2);
   }
 }
-
 function calcRiskFromAmount(){
   const amtEl = document.getElementById("logRisk");
   const pctEl = document.getElementById("logRiskPct");
@@ -552,7 +624,6 @@ function calcRiskFromAmount(){
     pctEl.value = ((val/acc.size)*100).toFixed(2);
   }
 }
-
 function calcRiskFromPct(){
   const amtEl = document.getElementById("logRisk");
   const pctEl = document.getElementById("logRiskPct");
@@ -563,7 +634,6 @@ function calcRiskFromPct(){
     amtEl.value = ((val/100)*acc.size).toFixed(2);
   }
 }
-
 function accountInfoHtml(accId){
   if(!accId) return "";
   const a = state.accounts.find(x=>x.id===accId);
@@ -576,14 +646,13 @@ function accountInfoHtml(accId){
       <div class="meta">Fase</div><h3>${escapeHtml(a.status)}</h3>
       <div class="rowstats">
         <div>Balance<strong class="money">${st.balance!=null?'$'+st.balance.toFixed(2):'—'}</strong></div>
-        <div>Balance %<strong class="money">${balPct!=null? balPct+'%':'—'}</strong></div>
+        <div>Balance %<strong class="money ${balPct!=null && parseFloat(balPct)>=0 ? 'pos' : 'neg'}">${balPct!=null? balPct+'%':'—'}</strong></div>
         <div>Objetivo<strong class="money">${a.profitTarget?'$'+a.profitTarget:'—'}</strong></div>
         <div>Drawdown máx.<strong class="money">${a.maxDrawdown?'$'+a.maxDrawdown:'—'}</strong></div>
       </div>
       <div class="meta" style="margin-top:10px">Cuentas activas ahora mismo: ${activeCount}</div>
     </div>`;
 }
-
 function renderLog(){
   const el = document.getElementById("view-log");
   if(!logDay) logDay = new Date().toISOString().slice(0,10);
@@ -684,7 +753,6 @@ function renderLog(){
   `;
   bindLogForm();
 }
-
 function bindLogForm(){
   const input = document.getElementById("logPhotoInput");
   if(!input) return;
@@ -698,7 +766,6 @@ function bindLogForm(){
     }catch(err){ console.error(err); toast("No se pudo procesar la imagen"); }
   });
 }
-
 function saveTrade(){
   captureLogDraft();
   const d = logDraft;
@@ -733,6 +800,7 @@ function saveTrade(){
   renderLog();
 }
 
+// ---------- Weekly review ----------
 function startOfWeek(ts){
   const d = new Date(ts);
   const day = d.getDay();
@@ -741,13 +809,11 @@ function startOfWeek(ts){
   d.setHours(0,0,0,0);
   return d;
 }
-
 function weekKey(ts){ return String(startOfWeek(ts).getTime()); }
 function monthKey(ts){ const d = new Date(ts); return d.getFullYear()+"-"+d.getMonth(); }
 function fmtDate(ts){
   return new Date(ts).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"});
 }
-
 function renderReview(){
   const el = document.getElementById("view-review");
   const wStart = startOfWeek(Date.now());
@@ -788,8 +854,8 @@ function renderReview(){
         <div class="rowstats" style="margin-top:0">
           <div>Día<strong>${fmtDate(t.date)}</strong></div>
           <div>Cuenta<strong>${acc? escapeHtml(acc.name):'—'}</strong></div>
-          <div>PnL $<strong class="money">${t.pnl!=null?'$'+t.pnl.toFixed(2):'—'}</strong></div>
-          <div>PnL %<strong class="money">${t.pnlPct!=null? t.pnlPct+'%':'—'}</strong></div>
+          <div>PnL $<strong class="money ${t.pnl!=null && t.pnl >= 0 ? 'pos' : 'neg'}">${t.pnl!=null?'$'+t.pnl.toFixed(2):'—'}</strong></div>
+          <div>PnL %<strong class="money ${t.pnlPct!=null && t.pnlPct >= 0 ? 'pos' : 'neg'}">${t.pnlPct!=null? t.pnlPct+'%':'—'}</strong></div>
         </div>
       </div>`;
   }).join("");
@@ -819,7 +885,7 @@ function renderReview(){
       <div class="rowstats">
         <div>Trades<strong>${count}</strong></div>
         <div>Winrate<strong>${decisive? winrate+'%':'—'}</strong></div>
-        <div>P&L<strong class="money">${pnlVals.length? '$'+totalPnl.toFixed(2):'—'}</strong></div>
+        <div>P&L<strong class="money ${pnlVals.length && totalPnl >= 0 ? 'pos' : 'neg'}">${pnlVals.length? '$'+totalPnl.toFixed(2):'—'}</strong></div>
       </div>
     </div>
     ${count? `
@@ -846,7 +912,7 @@ function renderReview(){
       <div class="rowstats" style="margin-top:0">
         <div>Trades<strong>${mCount}</strong></div>
         <div>Winrate<strong>${mDecisive? mWinrate+'%':'—'}</strong></div>
-        <div>P&L<strong class="money">${mPnlVals.length? '$'+mTotalPnl.toFixed(2):'—'}</strong></div>
+        <div>P&L<strong class="money ${mPnlVals.length && mTotalPnl >= 0 ? 'pos' : 'neg'}">${mPnlVals.length? '$'+mTotalPnl.toFixed(2):'—'}</strong></div>
       </div>
       ${weekBreakdownHtml? `<div class="meta" style="margin-top:10px; font-weight:650">Por semana</div>${weekBreakdownHtml}` : `<div class="meta" style="margin-top:10px">Aún no hay semanas con datos este mes</div>`}
     </div>
@@ -860,7 +926,6 @@ function renderReview(){
     <button class="btn" style="margin-top:14px" onclick="saveReview('${key}')">Guardar revisión</button>
   `;
 }
-
 function saveReview(key){
   state.reviews[key] = {
     a1: document.getElementById("revA1").value.trim(),
@@ -872,6 +937,7 @@ function saveReview(key){
   toast("Revisión guardada");
 }
 
+// ---------- Finance: certificate wall + expense tracker ----------
 let financeSubView = "certs";
 let editingCertType = "eval";
 let editingCertId = null;
@@ -891,7 +957,7 @@ function renderFinance(){
       <div class="card" style="margin-bottom:0"><div class="meta">Fondeado</div><h3 class="money">$${totalFunded.toFixed(2)}</h3></div>
       <div class="card" style="margin-bottom:0"><div class="meta">Pagado</div><h3 class="money">$${totalPaid.toFixed(2)}</h3></div>
       <div class="card" style="margin-bottom:0"><div class="meta">Gastado</div><h3 class="money">$${totalSpent.toFixed(2)}</h3></div>
-      <div class="card" style="margin-bottom:0"><div class="meta">Neto real</div><h3 class="money">${(net>=0?'$':'-$')+Math.abs(net).toFixed(2)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Neto real</div><h3 class="money ${net>=0?'pos':'neg'}">${(net>=0?'$':'-$')+Math.abs(net).toFixed(2)}</h3></div>
     </div>
     <div class="segmented" style="margin:12px 0">
       <button class="${financeSubView==='certs'?'sel':''}" data-r="be" onclick="financeSubView='certs'; renderFinance();">Logros</button>
@@ -906,9 +972,12 @@ function renderFinance(){
       [...state.certs].sort((a,b)=>b.date-a.date).forEach(c=>{
         const acc = c.accountId? state.accounts.find(a=>a.id===c.accountId) : null;
         html += `
-          <div class="card" onclick="openEditCert('${c.id}')">
+          <div class="card" style="position:relative">
             ${c.photo? `<img src="${c.photo}" class="cover">` : ''}
-            <h3>${c.type==='eval'?'🎓 Eval superada':'💰 Payout cobrado'}</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+              <h3 style="margin:0; color:var(--text)">${c.type==='eval'?'🎓 Eval superada':'💰 Payout cobrado'}</h3>
+              <span style="cursor:pointer; font-size:16px; color:var(--text)" onclick="event.stopPropagation(); openEditCert('${c.id}')">⚙️</span>
+            </div>
             <div class="meta">${acc? escapeHtml(acc.name)+' · ':''}${fmtDate(c.date)}</div>
             <div class="rowstats"><div>${c.type==='eval'?'Capital':'Importe'}<strong class="money">$${(c.amount||0).toFixed(2)}</strong></div></div>
             ${c.note? `<div class="meta" style="margin-top:6px">${escapeHtml(c.note)}</div>`:''}
@@ -934,7 +1003,6 @@ function renderFinance(){
   }
   el.innerHTML = html;
 }
-
 function expenseLabel(t){
   return {eval:"Eval / challenge", reset:"Reset", activation:"Activación", subscription:"Suscripción", other:"Otro"}[t] || t;
 }
@@ -948,7 +1016,6 @@ function openEditCert(id){
   document.getElementById("view-certs").innerHTML = certFormHtml();
   bindCertForm();
 }
-
 function certFormHtml(){
   const c = editingCertId? state.certs.find(x=>x.id===editingCertId): null;
   const type = editingCertType;
@@ -973,7 +1040,6 @@ function certFormHtml(){
     <button class="btn secondary" style="margin-top:8px" onclick="renderFinance()">Cancelar</button>
   `;
 }
-
 function bindCertForm(){
   const input = document.getElementById("certPhotoInput");
   if(!input) return;
@@ -986,7 +1052,6 @@ function bindCertForm(){
     }catch(err){ console.error(err); toast("No se pudo procesar la imagen"); }
   });
 }
-
 function saveCert(){
   const amountRaw = document.getElementById("certAmount").value;
   const amount = amountRaw? parseFloat(amountRaw) : 0;
@@ -1003,7 +1068,6 @@ function saveCert(){
   toast("Logro guardado");
   renderFinance();
 }
-
 function deleteCert(){
   state.certs = state.certs.filter(x=>x.id!==editingCertId);
   save();
@@ -1017,7 +1081,6 @@ function openEditExpense(id){
   editingExpenseType = state.expenses.find(x=>x.id===id).type;
   document.getElementById("view-certs").innerHTML = expenseFormHtml();
 }
-
 function expenseFormHtml(){
   const e = editingExpenseId? state.expenses.find(x=>x.id===editingExpenseId): null;
   const types = ["eval","reset","activation","subscription","other"];
@@ -1041,7 +1104,6 @@ function expenseFormHtml(){
     <button class="btn secondary" style="margin-top:8px" onclick="renderFinance()">Cancelar</button>
   `;
 }
-
 function saveExpense(){
   const type = document.getElementById("expType").value;
   const accountId = document.getElementById("expAccount").value || null;
@@ -1059,7 +1121,6 @@ function saveExpense(){
   toast("Gasto guardado");
   renderFinance();
 }
-
 function deleteExpense(){
   state.expenses = state.expenses.filter(x=>x.id!==editingExpenseId);
   save();
@@ -1067,6 +1128,7 @@ function deleteExpense(){
   renderFinance();
 }
 
+// ---------- Stats ----------
 function renderStats(){
   const el = document.getElementById("view-stats");
   const tradeEntries = state.trades.filter(t=>t.hadTrade);
@@ -1094,7 +1156,7 @@ function renderStats(){
       <div class="rowstats">
         <div>Trades<strong>${tradeEntries.length}</strong></div>
         <div>Winrate<strong>${decisive? winrate+'%':'—'}</strong></div>
-        <div>P&L<strong class="money">${(totalPnl>=0?'$':'-$')+Math.abs(totalPnl).toFixed(2)}</strong></div>
+        <div>P&L<strong class="money ${totalPnl>=0?'pos':'neg'}">${(totalPnl>=0?'$':'-$')+Math.abs(totalPnl).toFixed(2)}</strong></div>
         <div>RR medio<strong>${avgRR}</strong></div>
       </div>
     </div>
@@ -1119,11 +1181,10 @@ function renderStats(){
 }
 
 // ---------- init ----------
-load().then(() => {
-  initPrivacy();
-  renderLog();
-  lucide.createIcons();
-});
+load();
+initPrivacy();
+renderLog();
+lucide.createIcons();
 </script>
 </body>
 </html>
