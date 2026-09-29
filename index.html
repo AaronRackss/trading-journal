@@ -11,36 +11,36 @@
 <style>
   :root{
     box-sizing:border-box;
-    --bg:#000000; --surface:#0A0A0A; --border:#1A1A1A;
+    --bg:#050505; --surface: rgba(20, 20, 20, 0.7); --border: rgba(255, 255, 255, 0.1);
     --text:#FFFFFF; --text-dim:#A0A0A0;
-    --accent:#2383E2; --accent-soft:#1A2B3C;
-    --win:#2F9E58; --win-soft:#E2F3E7;
-    --loss:#D14343; --loss-soft:#FBE6E6;
-    --be:#8A8F99; --be-soft:#EDEEF0;
-    --eval:#2383E2; --eval-soft:#1A2B3C;
-    --buffer:#F5A623; --buffer-soft:#3D2D15;
-    --funded:#2F9E58; --funded-soft:#173125;
-    --failed:#D14343; --failed-soft:#331A1A;
+    --accent: #3B82F6; --accent-soft: rgba(59, 130, 246, 0.15);
+    --win:#10B981; --win-soft: rgba(16, 185, 129, 0.15);
+    --loss:#EF4444; --loss-soft: rgba(239, 68, 68, 0.15);
+    --be:#64748B; --be-soft: rgba(100, 116, 139, 0.15);
+    --eval:#3B82F6; --eval-soft: rgba(59, 130, 246, 0.15);
+    --buffer:#F59E0B; --buffer-soft: rgba(245, 158, 11, 0.15);
+    --funded:#10B981; --funded-soft: rgba(16, 185, 129, 0.15);
+    --failed:#EF4444; --failed-soft: rgba(239, 68, 68, 0.15);
     padding-top:env(safe-area-inset-top,0px);
     padding-bottom:env(safe-area-inset-bottom,0px);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#000000; --surface:#0A0A0A; --border:#1A1A1A;
+      --bg:#050505; --surface: rgba(20, 20, 20, 0.7); --border: rgba(255, 255, 255, 0.1);
       --text:#FFFFFF; --text-dim:#A0A0A0;
-      --accent:#2383E2; --accent-soft:#1A2B3C;
-      --win:#4CC17E; --win-soft:#173125;
-      --loss:#E2645F; --loss-soft:#331A1A;
-      --be:#8A8F99; --be-soft:#22242A;
+      --accent:#3B82F6; --accent-soft: rgba(59, 130, 246, 0.15);
+      --win:#10B981; --win-soft: rgba(16, 185, 129, 0.15);
+      --loss:#EF4444; --loss-soft: rgba(239, 68, 68, 0.15);
+      --be:#64748B; --be-soft: rgba(100, 116, 139, 0.15);
     }
   }
   :root[data-theme="dark"]{
-    --bg:#000000; --surface:#0A0A0A; --border:#1A1A1A;
+    --bg:#050505; --surface: rgba(20, 20, 20, 0.7); --border: rgba(255, 255, 255, 0.1);
     --text:#FFFFFF; --text-dim:#A0A0A0;
-    --accent:#2383E2; --accent-soft:#1A2B3C;
-    --win:#4CC17E; --win-soft:#173125;
-    --loss:#E2645F; --loss-soft:#331A1A;
-    --be:#8A8F99; --be-soft:#22242A;
+    --accent:#3B82F6; --accent-soft: rgba(59, 130, 246, 0.15);
+    --win:#10B981; --win-soft: rgba(16, 185, 129, 0.15);
+    --loss:#EF4444; --loss-soft: rgba(239, 68, 68, 0.15);
+    --be:#64748B; --be-soft: rgba(100, 116, 139, 0.15);
   }
   html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
   *{box-sizing:border-box;}
@@ -57,6 +57,7 @@
     height:100vh; width:100vw;
     background:var(--bg);
     position:relative; overflow:hidden;
+    transition: all 0.3s ease;
   }
   @media (min-width: 400px) {
     .app {
@@ -100,12 +101,18 @@
     width: 100%;
   }
   .card{
-    background:var(--surface); border:1px solid var(--border); border-radius:10px;
-    padding:14px 16px; margin-bottom:10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:16px; margin-bottom:12px;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .card h3{margin:0 0 2px; font-size:15.5px; font-weight:650;}
-  .card .meta{font-size:12.5px; color:var(--text-dim);}
+  .card:active{
+    transform: scale(0.98);
+  }
+  .card h3{margin:0 0 4px; font-size:16px; font-weight:700; letter-spacing:-0.02em;}
+  .card .meta{font-size:12px; color:var(--text-dim); font-weight:500;}
   .rowstats{display:flex; gap:14px; margin-top:10px; font-size:12.5px;}
   .rowstats div{color:var(--text-dim);}
   .rowstats strong{display:block; color:var(--text); font-size:14px; font-weight:650;}
@@ -113,14 +120,15 @@
     text-align:center; color:var(--text-dim); font-size:14px; padding:40px 20px;
   }
   .btn{
-    background:var(--accent); color:#FFFFFF; border:none; border-radius:12px;
+    background: linear-gradient(135deg, var(--accent), #2563EB); color:#FFFFFF; border:none; border-radius:14px;
     padding:14px 16px; font-size:15px; font-weight:600; width:100%; cursor:pointer;
     font-family:inherit; transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(35, 131, 226, 0.2);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
   }
   .btn:active{
-    transform: scale(0.98);
+    transform: scale(0.97);
     opacity: 0.9;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
   }
   .btn.secondary{background:transparent; color:var(--text); border:1px solid var(--border); box-shadow:none;}
   .btn.danger{background:transparent; color:var(--loss); border:1px solid var(--loss); box-shadow:none;}
@@ -228,9 +236,115 @@
   .cover{width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; margin-bottom:10px; display:block; background:var(--bg); cursor:zoom-in;}
   .section-title{font-size:12px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:.03em; margin:22px 0 8px;}
   .section-title:first-child{margin-top:0;}
-  .lightbox{display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:50; align-items:center; justify-content:center; padding:24px;}
-  .lightbox.show{display:flex;}
-  .lightbox img{max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;}
+  .heatmap-container{
+    margin-bottom:24px;
+    text-align:center;
+  }
+  .heatmap-grid{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:4px;
+    max-width:300px;
+    margin:12px auto;
+  }
+  .heatmap-day{
+    aspect-ratio:1;
+    border-radius:4px;
+    font-size:11px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text);
+    cursor:pointer;
+    transition:transform 0.1s;
+    background:var(--border);
+    border: 2px solid transparent;
+  }
+  .heatmap-day:active{transform:scale(0.9);}
+  .heatmap-day.win-1{background:rgba(16, 185, 129, 0.3);}
+  .heatmap-day.win-2{background:rgba(16, 185, 129, 0.6);}
+  .heatmap-day.win-3{background:var(--win);}
+  .heatmap-day.loss-1{background:rgba(239, 68, 68, 0.3);}
+  .heatmap-day.loss-2{background:rgba(239, 68, 68, 0.6);}
+  .heatmap-day.loss-3{background:var(--loss);}
+
+  .filter-date-group{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px;
+    justify-content:center;
+  }
+  .heatmap-controls-btn{
+    background: #FFF !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .mistake-chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .mistake-chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .mistake-chip.selected {
+    background: var(--loss-soft);
+    color: var(--loss);
+    border-color: var(--loss);
+  }
+  .mistake-analysis-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .mistake-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .mistake-row .info {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .mistake-row .impact-bar-container {
+    flex: 2;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .mistake-row .impact-bar {
+    height: 100%;
+    background: var(--loss);
+    transition: width 0.3s ease;
+  }
+  .mistake-row .cost {
+    width: 80px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--loss);
+  }
+
 </style>
 </head>
 <body>
@@ -415,12 +529,21 @@ function accountStats(accountId){
   const count = tradeEntries.length;
   const pnlVals = trades.filter(t=>t.pnl!=null).map(t=>t.pnl);
   const totalPnl = pnlVals.reduce((a,b)=>a+b,0);
-  const wins = tradeEntries.filter(t=>tradeOutcome(t)==='win').length;
-  const losses = tradeEntries.filter(t=>tradeOutcome(t)==='loss').length;
-  const decisive = wins+losses;
-  const winrate = decisive? Math.round((wins/decisive)*100) : 0;
+  const wins = tradeEntries.filter(t=>tradeOutcome(t)==='win');
+  const losses = tradeEntries.filter(t=>tradeOutcome(t)==='loss');
+  const decisive = wins.length + losses.length;
+  const winrate = decisive ? Math.round((wins.length/decisive)*100) : 0;
+
+  // --- Advanced Metrics ---
+  const grossProfit = wins.reduce((sum, t) => sum + (t.pnl || 0), 0);
+  const grossLoss = Math.abs(losses.reduce((sum, t) => sum + (t.pnl || 0), 0));
+  const profitFactor = grossLoss !== 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
+
+  const avgWin = wins.length ? (grossProfit / wins.length).toFixed(0) : 0;
+  const avgLoss = losses.length ? (grossLoss / losses.length).toFixed(0) : 0;
+
   const balance = (acc && acc.size!=null)? (acc.size + totalPnl) : null;
-  return {count, totalPnl, winrate, balance};
+  return {count, totalPnl, winrate, balance, profitFactor, avgWin, avgLoss};
 }
 function challengeStats(accountId){
   const acc = state.accounts.find(a=>a.id===accountId);
@@ -545,6 +668,11 @@ function renderAccounts(showForm){
           <div>Winrate<strong>${st.count? st.winrate+'%':'—'}</strong></div>
           <div>P&L<strong class="money ${st.totalPnl >= 0 ? 'pos' : 'neg'}">${(st.totalPnl>=0?'$':'-$')+Math.abs(st.totalPnl).toFixed(0)}</strong></div>
         </div>
+        <div class="rowstats" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
+          <div>Profit Factor<strong style="color:var(--accent)">${st.profitFactor || '—'}</strong></div>
+          <div>Avg Win<strong class="money pos">$${st.avgWin || '0'}</strong></div>
+          <div>Avg Loss<strong class="money neg">$${st.avgLoss || '0'}</strong></div>
+        </div>
         ${challengeBlockHtml(a)}
       </div>`;
   });
@@ -641,7 +769,7 @@ function calcPnlPct(){
   const acc = state.accounts.find(a=>a.id===logSelectedAccount);
   const val = parseFloat(amtEl.value);
   if(!isNaN(val) && acc && acc.size){
-    pctEl.value = ((val/acc.size)*100).toFixed(0);
+    pctEl.value = ((val/acc.size)*100).toFixed(2);
   }
 }
 function calcRiskFromAmount(){
@@ -651,7 +779,7 @@ function calcRiskFromAmount(){
   const acc = state.accounts.find(a=>a.id===logSelectedAccount);
   const val = parseFloat(amtEl.value);
   if(!isNaN(val) && acc && acc.size){
-    pctEl.value = ((val/acc.size)*100).toFixed(0);
+    pctEl.value = ((val/acc.size)*100).toFixed(2);
   }
 }
 function calcRiskFromPct(){
@@ -712,8 +840,9 @@ function renderLog(){
         logBeMoment: t.beMoment || "",
         logNotes: t.notes || "",
         logFeeling: t.feeling || "",
-        logMistakes: t.mistakes || ""
+        logMistakes: Array.isArray(t.mistakes) ? t.mistakes : (t.mistakes ? t.mistakes.split(",") : [])
       };
+
     }
   }
 
@@ -800,7 +929,12 @@ function renderLog(){
       <label>¿Cómo te sentiste ese día?</label>
       <textarea id="logFeeling" placeholder="…">${escapeHtml(d.logFeeling||'')}</textarea>
       <label>¿Qué errores cometiste?</label>
-      <textarea id="logMistakes" placeholder="…">${escapeHtml(d.logMistakes||'')}</textarea>
+      <div id="mistakes-container" class="mistake-chip-container"></div>
+      <div style="display:flex; gap:8px; margin-top:8px; justify-content:center">
+        <input type="text" id="customMistakeInput" placeholder="Nuevo error..." style="width:60%; font-size:13px; padding:6px">
+        <button class="iconbtn" style="padding:6px 12px; font-size:12px" onclick="addCustomMistake()">Añadir</button>
+      </div>
+
       <label>Valoración del día</label>
       <div class="segmented" style="justify-content:center">
         <button class="${logRating==='malo'?'sel':''}" data-r="loss" onclick="captureLogDraft(); logRating='malo'; renderLog();">Malo</button>
@@ -837,7 +971,58 @@ function bindLogForm(){
       renderLog();
     }catch(err){ console.error(err); toast("No se pudo procesar la imagen"); }
   });
+
+  renderMistakeChips();
 }
+
+const PREDEFINED_MISTAKES = ["FOMO", "Overtrading", "No respetar SL", "Entrada apresurada", "Cierre prematuro", "Falta de confirmación", "Venganza", "Operar noticia"];
+
+function renderMistakeChips() {
+  const container = document.getElementById("mistakes-container");
+  if(!container) return;
+
+  const currentMistakes = Array.isArray(logDraft.logMistakes) ? logDraft.logMistakes : (logDraft.logMistakes ? logDraft.logMistakes.split(",") : []);
+
+  const allMistakes = [...new Set([...PREDEFINED_MISTAKES, ...currentMistakes])];
+
+  container.innerHTML = allMistakes.map(m => {
+    const mistake = m.trim();
+    if(!mistake) return "";
+    const isSelected = currentMistakes.includes(mistake);
+    return `<div class="mistake-chip ${isSelected?'selected':''}" onclick="toggleMistakeChip('${mistake}')">${escapeHtml(mistake)}</div>`;
+  }).join("");
+}
+
+function toggleMistakeChip(m) {
+  if(!Array.isArray(logDraft.logMistakes)) {
+    logDraft.logMistakes = logDraft.logMistakes ? logDraft.logMistakes.split(",") : [];
+  }
+
+  const idx = logDraft.logMistakes.indexOf(m);
+  if(idx > -1) {
+    logDraft.logMistakes.splice(idx, 1);
+  } else {
+    logDraft.logMistakes.push(m);
+  }
+  renderMistakeChips();
+}
+
+function addCustomMistake() {
+  const input = document.getElementById("customMistakeInput");
+  const val = input.value.trim();
+  if(!val) return;
+
+  if(!Array.isArray(logDraft.logMistakes)) {
+    logDraft.logMistakes = logDraft.logMistakes ? logDraft.logMistakes.split(",") : [];
+  }
+
+  if(!logDraft.logMistakes.includes(val)) {
+    logDraft.logMistakes.push(val);
+  }
+  input.value = "";
+  renderMistakeChips();
+}
+
 function saveTrade(){
   captureLogDraft();
   const d = logDraft;
@@ -863,8 +1048,9 @@ function saveTrade(){
     beMoment: (logHadTrade && logUsedBE)? (d.logBeMoment||"") : "",
     notes: d.logNotes||"",
     feeling: d.logFeeling||"",
-    mistakes: d.logMistakes||"",
+    mistakes: Array.isArray(d.logMistakes) ? d.logMistakes : (d.logMistakes ? d.logMistakes.split(",") : []),
     rating: logRating,
+
     photo: logPhotoPreview || null
   };
 
@@ -1409,9 +1595,10 @@ function renderHistory(tradeId = null) {
 
     el.innerHTML = `
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px">
-        <button class="iconbtn" onclick="renderHistory()" style="padding:6px"><i data-lucide="arrow-left" style="width:16px; height:16px"></i></button>
+        <button class="iconbtn heatmap-controls-btn" onclick="renderHistory()" style="padding:6px"><i data-lucide="arrow-left" style="width:14px; height:14px"></i></button>
         <h3 style="margin:0">Detalle del día</h3>
       </div>
+
 
       <div style="text-align:center; margin-bottom:20px">
         <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:4px">
@@ -1439,7 +1626,7 @@ function renderHistory(tradeId = null) {
           <div>
             <div class="meta" style="color:var(--text-dim)">Porcentaje</div>
             <div class="money ${t.pnlPct >= 0 ? 'pos' : 'neg'}" style="font-size:22px; font-weight:800">
-              ${t.pnlPct != null ? t.pnlPct + '%' : '—'}
+              ${t.pnlPct != null ? t.pnlPct.toFixed(2) + '%' : '—'}
             </div>
           </div>
         </div>
@@ -1494,7 +1681,9 @@ function renderHistory(tradeId = null) {
     return;
   }
 
+  const mistakeAnalysisHtml = renderMistakeAnalysis();
   const sortedTrades = [...state.trades].sort((a, b) => b.date - a.date);
+
 
   // --- RESUMEN SEMANAL Y MENSUAL ---
   const monthlyStats = {}; // { 'Enero 2024': { weeks: { 'weekKey': pnl }, totalPnl: 0 } }
@@ -1519,8 +1708,8 @@ function renderHistory(tradeId = null) {
   Object.entries(monthlyStats).forEach(([month, data]) => {
     // 1. Tarjeta de Resumen Mensual (Cabecera)
     summaryHtml += `
-      <div class="card" style="background:var(--accent-soft); border-color:var(--accent); text-align:center; margin-bottom:16px">
-        <div class="meta" style="color:var(--accent); font-weight:700; text-transform:uppercase">${month}</div>
+      <div class="card" style="background:var(--surface); border-color:var(--text); text-align:center; margin-bottom:16px">
+        <div class="meta" style="color:var(--text); font-weight:700; text-transform:uppercase">${month}</div>
         <div class="money ${data.totalPnl >= 0 ? 'pos' : 'neg'}" style="font-size:28px; font-weight:800">
           ${data.totalPnl >= 0 ? '$' : '-$'}${Math.abs(data.totalPnl).toFixed(0)}
         </div>
@@ -1566,10 +1755,13 @@ function renderHistory(tradeId = null) {
   });
 
   let listHtml = "";
-  Object.entries(tradeGroups).forEach(([month, weeks]) => {
-    listHtml += `<div class="section-title">${month}</div>`;
 
-    // Ordenar semanas por fecha (descendente: la más nueva primero)
+  // FILTRAR POR EL MES DEL HEATMAP
+  const currentMonthLabel = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(currentHeatmapDate);
+  const currentMonthName = currentMonthLabel.charAt(0).toUpperCase() + currentMonthLabel.slice(1);
+
+  if (tradeGroups[currentMonthName]) {
+    const weeks = tradeGroups[currentMonthName];
     const sortedWeekKeys = Object.keys(weeks).sort((a,b) => Number(b) - Number(a));
 
     sortedWeekKeys.forEach(wKey => {
@@ -1589,15 +1781,15 @@ function renderHistory(tradeId = null) {
 
       // Suma de todos los PnL % de los trades de la semana
       const totalWeekPnlPct = weekTradesWithPnl.reduce((a, b) => a + (b.pnlPct || 0), 0);
-      const weekPnlPctStr = totalWeekPnlPct.toFixed(0) + '%';
+      const weekPnlPctStr = totalWeekPnlPct.toFixed(2) + '%';
 
-      // RESUMEN DE la SEMANA (Debajo de los trades de esa semana)
+      // RESUMEN DE la semana (Debajo de los trades de esa semana)
       const wS = new Date(Number(wKey));
       const wE = new Date(wS.getTime() + 6 * 86400000);
       const wR = `${fmtDate(wS.getTime())} al ${fmtDate(wE.getTime())}`;
 
       listHtml += `
-        <div class="card" style="background:var(--surface); border:1px dashed var(--border); margin-bottom:24px; text-align:center; cursor:pointer" onclick="this.querySelector('.week-trades').style.display = this.querySelector('.week-trades').style.display === 'none' ? 'block' : 'none'">
+        <div class="card" style="background:var(--surface); border:1px solid var(--text); margin-bottom:24px; text-align:center; cursor:pointer" onclick="this.querySelector('.week-trades').style.display = this.querySelector('.week-trades').style.display === 'none' ? 'block' : 'none'">
           <div class="meta" style="margin-bottom:10px; font-weight:700; font-size:12px">Semana del ${wR} ▾</div>
           <div class="rowstats" style="justify-content:center; margin-top:0; gap:20px">
             <div>Trades<strong>${count}</strong></div>
@@ -1610,7 +1802,7 @@ function renderHistory(tradeId = null) {
               const acc = t.accountId ? state.accounts.find(a => a.id === t.accountId) : null;
               const pnlClass = t.pnl >= 0 ? 'pos' : 'neg';
               const pnlStr = t.pnl != null ? (t.pnl >= 0 ? '$' : '-$') + Math.abs(t.pnl).toFixed(0) : '—';
-              const pctStr = t.pnlPct != null ? t.pnlPct + '%' : '—';
+              const pctStr = t.pnlPct != null ? t.pnlPct.toFixed(2) + '%' : '—';
               return `
                 <div class="card" style="cursor:pointer; margin-bottom:10px; padding:10px" onclick="event.stopPropagation(); renderHistory('${t.id}')">
                   ${t.photo ? `<img src="${t.photo}" class="cover">` : ''}
@@ -1628,18 +1820,29 @@ function renderHistory(tradeId = null) {
           </div>
         </div>`;
     });
-  });
+  } else {
+    listHtml = `<div class="empty" style="padding:20px">No hay trades registrados para este mes.</div>`;
+  }
 
 
 
   el.innerHTML = summaryHtml + `
-    <div class="chart-container"><canvas id="dailyPnLChart"></canvas></div>
-    <div class="chart-container"><canvas id="balanceChart"></canvas></div>
+    <div class="section-title">Análisis Temporal</div>
+    <div class="heatmap-container">
+      <div id="heatmap-controls" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; width:100%; max-width:300px; margin-left:auto; margin-right:auto">
+        <button class="iconbtn heatmap-controls-btn" style="padding:2px 6px" onclick="changeHeatmapMonth(-1)"><i data-lucide="chevron-left" style="width:14px; height:14px"></i></button>
+        <span id="heatmap-month-label" style="font-weight:700; font-size:14px"></span>
+        <button class="iconbtn heatmap-controls-btn" style="padding:2px 6px" onclick="changeHeatmapMonth(1)"><i data-lucide="chevron-right" style="width:14px; height:14px"></i></button>
+      </div>
+
+
+      <div id="heatmap-grid" class="heatmap-grid"></div>
+    </div>
   ` + listHtml;
-  renderCharts();
+  renderHeatmap();
 }
 
-function renderCharts(){
+function renderCharts(startFilter, endFilter){
   // Get canvas contexts
   const dailyCanvas = document.getElementById('dailyPnLChart');
   const balanceCanvas = document.getElementById('balanceChart');
@@ -1647,9 +1850,20 @@ function renderCharts(){
   const ctxDaily = dailyCanvas.getContext('2d');
   const ctxBalance = balanceCanvas.getContext('2d');
 
+  // Filter trades by date if filters are provided
+  let filteredTrades = [...state.trades];
+  if (startFilter) {
+    const startTs = new Date(startFilter + "T00:00:00").getTime();
+    filteredTrades = filteredTrades.filter(t => t.date >= startTs);
+  }
+  if (endFilter) {
+    const endTs = new Date(endFilter + "T23:59:59").getTime();
+    filteredTrades = filteredTrades.filter(t => t.date <= endTs);
+  }
+
   // Prepare data: daily totals
   const dailyMap = {};
-  state.trades.forEach(t => {
+  filteredTrades.forEach(t => {
     if (t.pnl != null) {
       dailyMap[t.day] = (dailyMap[t.day] || 0) + t.pnl;
     }
@@ -1714,7 +1928,207 @@ function renderCharts(){
 }
 
 
-// ---------- init ----------
+function calculateMistakeMetrics() {
+  const metrics = {};
+  let totalLosses = 0;
+
+  state.trades.forEach(t => {
+    if (!t.mistakes) return;
+    const mList = Array.isArray(t.mistakes) ? t.mistakes : t.mistakes.split(",");
+    const pnl = t.pnl || 0;
+
+    mList.forEach(m => {
+      const mistake = m.trim();
+      if (!mistake) return;
+      if (!metrics[mistake]) {
+        metrics[mistake] = { count: 0, totalPnl: 0 };
+      }
+      metrics[mistake].count++;
+      metrics[mistake].totalPnl += pnl;
+    });
+
+    if (pnl < 0) totalLosses += Math.abs(pnl);
+  });
+
+  return { metrics, totalLosses };
+}
+
+function renderMistakeAnalysis() {
+  const { metrics, totalLosses } = calculateMistakeMetrics();
+  const sorted = Object.entries(metrics)
+    .filter(([_, data]) => data.totalPnl < 0)
+    .sort((a, b) => a[1].totalPnl - b[1].totalPnl);
+
+  if (sorted.length === 0) return "";
+
+  let html = `<div class="section-title">Fugas de Capital (Errores)</div><div class="mistake-analysis-card">`;
+
+  sorted.forEach(([name, data]) => {
+    const cost = Math.abs(data.totalPnl);
+    const impactPct = totalLosses > 0 ? (cost / totalLosses) * 100 : 0;
+    html += `
+      <div class="mistake-row">
+        <div class="info">${escapeHtml(name)} <span style="color:var(--text-dim); font-weight:400">(${data.count}x)</span></div>
+        <div class="impact-bar-container">
+          <div class="impact-bar" style="width: ${impactPct}%"></div>
+        </div>
+        <div class="cost">-$${cost.toFixed(0)}</div>
+      </div>`;
+  });
+
+  html += `</div>`;
+  return html;
+}
+let currentHeatmapDate = new Date();
+
+function renderHeatmap() {
+  const grid = document.getElementById("heatmap-grid");
+  const label = document.getElementById("heatmap-month-label");
+  if(!grid || !label) return;
+
+  const year = currentHeatmapDate.getFullYear();
+  const month = currentHeatmapDate.getMonth();
+
+  label.textContent = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(currentHeatmapDate).toUpperCase();
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Crear cabecera de días de la semana (Lunes a Viernes)
+  const dayLabels = ["Lun", "Mar", "Mie", "Jue", "Vie"];
+  let headerHtml = `<div class="heatmap-header" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:4px; max-width:300px; margin:0 auto 4px; font-size:10px; color:var(--text-dim); text-align:center; font-weight:600">`;
+  dayLabels.forEach(day => {
+    headerHtml += `<div>${day}</div>`;
+  });
+  headerHtml += `</div>`;
+
+  const container = grid.parentElement;
+  const oldHeader = container.querySelector('.heatmap-header');
+  if(oldHeader) oldHeader.remove();
+  container.insertBefore(document.createRange().createContextualFragment(headerHtml), grid);
+
+  grid.innerHTML = "";
+
+  // Para que los días coincidan con su columna (Lun-Vie), necesitamos saber
+  // qué día de la semana empieza el mes y rellenar el espacio inicial.
+  const firstDayDate = new Date(year, month, 1);
+  let firstDayOfWeek = firstDayDate.getDay(); // 0=Dom, 1=Lun...
+
+  // Ajustamos el día de inicio para que el calendario empiece en Lunes (1)
+  // Si es domingo(0), lo tratamos como si fuera el final de la semana anterior para el cálculo de offsets
+  let offset = 0;
+  if (firstDayOfWeek === 0) {
+    // Domingo: el primer día laborable es el Lunes (día 1 o 2 del mes)
+    // Pero para el grid de 5 columnas, necesitamos saber cuántos espacios vacíos hay
+    // desde el lunes anterior.
+    offset = 0; // El domingo no cuenta, empezamos el lunes.
+  } else {
+    // Lun=1 -> offset 0, Mar=2 -> offset 1... Sab=6 -> offset 0 (porque el sábado no existe en el grid)
+    offset = (firstDayOfWeek === 6) ? 0 : (firstDayOfWeek - 1);
+  }
+
+  // Si el mes empieza en sábado(6), el primer día laborable es el domingo(0), pero el domingo tampoco existe.
+  // El primer espacio real será el lunes siguiente.
+  // Simplificación: calculamos el offset exacto de celdas vacías para llegar al primer Lunes.
+
+  // Forma más robusta:
+  // Determinamos cuántos días laborables hay ANTES del día 1 del mes en su semana respectiva.
+  // O mejor: calculamos la posición del día 1 en un grid de 5 (Lun-Vie).
+
+  // El offset es cuántos días laborables hay en la primera semana antes del día 1.
+  // Si el día 1 es Lunes(1) -> 0 vacíos.
+  // Si el día 1 es Martes(2) -> 1 vacío (Lunes).
+  // Si el día 1 es Viernes(5) -> 4 vacíos (Lun, Mar, Mie, Jue).
+  // Si el día 1 es Sábado(6) o Domingo(0) -> 0 vacíos para la semana siguiente,
+  // pero el día 1 no se dibuja. El primer dibujo será el lunes.
+
+  let padding = 0;
+  if (firstDayOfWeek !== 0 && firstDayOfWeek !== 6) {
+    padding = firstDayOfWeek - 1;
+  } else if (firstDayOfWeek === 0) {
+    // Domingo: el día 1 no se dibuja, el primer día dibujable es el día 2 (si es lunes)
+    // El offset para el día 1 es irrelevante, pero para el día 2 será 0.
+    padding = 0;
+  }
+
+  // Añadir celdas vacías para alinear el primer día del mes con su columna
+  for(let i=0; i<padding; i++) {
+    grid.appendChild(document.createElement("div"));
+  }
+
+  for(let d=1; d<=daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const dayOfWeek = date.getDay();
+
+    if(dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+    const dayCell = document.createElement("div");
+    dayCell.className = "heatmap-day";
+    dayCell.textContent = d;
+
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayPnL = state.trades
+      .filter(t => t.day === dateStr)
+      .reduce((sum, t) => sum + (t.pnl || 0), 0);
+
+    if(dayPnL !== 0) {
+      // Buscar el trade del día para determinar el resultado
+      const trade = state.trades.find(t => t.day === dateStr);
+      if (trade) {
+        const res = trade.result;
+        let borderColor = 'var(--border)';
+        let bgColor = 'transparent';
+
+        if (res === 'TP') {
+          borderColor = 'var(--win)';
+          bgColor = 'var(--win-soft)';
+        } else if (res === 'SL') {
+          borderColor = 'var(--loss)';
+          bgColor = 'var(--loss-soft)';
+        } else if (res === 'BE') {
+          borderColor = 'var(--be)';
+          bgColor = 'var(--be-soft)';
+        } else if (res === 'TIME') {
+          const isPos = trade.pnl > 0;
+          const isNeg = trade.pnl < 0;
+          borderColor = isPos ? 'var(--win)' : (isNeg ? 'var(--loss)' : 'var(--be)');
+          bgColor = isPos ? 'var(--win-soft)' : (isNeg ? 'var(--loss-soft)' : 'var(--be-soft)');
+        } else {
+          borderColor = dayPnL > 0 ? 'var(--win)' : 'var(--loss)';
+          bgColor = dayPnL > 0 ? 'var(--win-soft)' : 'var(--loss-soft)';
+        }
+        dayCell.style.borderColor = borderColor;
+        dayCell.style.backgroundColor = bgColor;
+      } else {
+        dayCell.style.borderColor = dayPnL > 0 ? 'var(--win)' : 'var(--loss)';
+        dayCell.style.backgroundColor = dayPnL > 0 ? 'var(--win-soft)' : 'var(--loss-soft)';
+      }
+    }
+
+    dayCell.onclick = () => {
+      const trade = state.trades.find(t => t.day === dateStr);
+      if(trade) {
+        renderHistory(trade.id);
+      } else {
+        const amount = dayPnL === 0 ? "Sin trades" : `$${dayPnL.toFixed(0)}`;
+        toast(`Día ${d}: ${amount}`);
+      }
+    };
+    grid.appendChild(dayCell);
+  }
+  lucide.createIcons();
+}
+
+function changeHeatmapMonth(delta) {
+  currentHeatmapDate.setMonth(currentHeatmapDate.getMonth() + delta);
+  renderHeatmap();
+  renderHistory();
+}
+
+function updateEquityCurve() {
+  const start = document.getElementById("filterStart").value;
+  const end = document.getElementById("filterEnd").value;
+  renderCharts(start, end);
+}
 load();
 initPrivacy();
 renderLog();
