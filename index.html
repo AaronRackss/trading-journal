@@ -53,13 +53,20 @@
     display:block;
     overflow:hidden;
     width: 100vw;
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
   .app{
     display:flex; flex-direction:column;
     height:100dvh; width:100vw;
     background:var(--bg);
-    position:relative; overflow:hidden;
+    position:fixed;
+    top: 0;
+    left: 0;
+    overflow:hidden;
     transition: all 0.3s ease;
     animation: appEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
@@ -97,11 +104,14 @@
     background:var(--surface);
     padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
     z-index: 10;
+    margin: 0 12px 12px;
+    border-radius: 20px;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
   }
   nav button{
     flex:1; background:none; border:none; padding:9px 2px 6px; font-size:10px;
     color:var(--text); font-family:inherit; display:flex; flex-direction:column;
-    align-items:center; gap:4px; cursor:pointer;
+    align-items:center; justify-content:center; gap:2px; cursor:pointer;
   }
   nav button i{font-size:18px; width:18px; height:18px;}
   nav button.active{color:var(--accent);}
