@@ -46,21 +46,36 @@
   html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
   *{box-sizing:border-box;}
   body{
-    margin:0; height:100vh; background:#000; color:var(--text);
+    margin:0; height:100dvh; background:#000; color:var(--text);
     font-family: 'Inter', -apple-system, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing:antialiased;
-    display:flex; justify-content:center; align-items:center;
+    display:block;
     overflow:hidden;
     width: 100vw;
     position: relative;
   }
   .app{
     display:flex; flex-direction:column;
-    height:100vh; width:100vw;
+    height:100dvh; width:100vw;
     background:var(--bg);
     position:relative; overflow:hidden;
     transition: all 0.3s ease;
+    animation: appEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes appEntrance {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .fade-in-card {
+    animation: cardEntrance 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  @keyframes cardEntrance {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   @media (min-width: 400px) {
     .app {
@@ -116,9 +131,9 @@
   }
   .card h3{margin:0 0 4px; font-size:16px; font-weight:700; letter-spacing:-0.02em;}
   .card .meta{font-size:12px; color:var(--text-dim); font-weight:500;}
-  .rowstats{display:flex; gap:14px; margin-top:10px; font-size:12.5px;}
+  .rowstats{display:flex; gap:14px; margin-top:10px; font-size:14px;}
   .rowstats div{color:var(--text-dim);}
-  .rowstats strong{display:block; color:var(--text); font-size:14px; font-weight:650;}
+  .rowstats strong{display:block; color:var(--text); font-size:16px; font-weight:650;}
   .empty{
     text-align:center; color:var(--text-dim); font-size:14px; padding:40px 20px;
   }
@@ -794,7 +809,7 @@ function renderAccounts(showForm){
 
   let html = tabsHtml + `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
 
-  filteredAccounts.forEach(a=>{
+  filteredAccounts.forEach((a, index)=>{
     const st = accountStats(a.id);
     const statusClass = a.status === 'En evaluación' ? 'eval' :
                         a.status === 'Buffer' ? 'buffer' :
@@ -805,7 +820,7 @@ function renderAccounts(showForm){
     const finalStatusClass = (isPassed && a.status !== 'Fondeada') ? 'passed' : statusClass;
 
     html += `
-      <div class="card">
+      <div class="card fade-in-card" style="animation-delay: ${index * 0.1}s">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
           <h3 style="margin:0; display:flex; align-items:center; gap:8px">${escapeHtml(a.name)}<i data-lucide="edit-3" style="cursor:pointer; width:14px; height:14px; color:var(--text-dim)" onclick="event.stopPropagation(); openEditAccount('${a.id}')"></i></h3>
           <span class="badge ${finalStatusClass}">${escapeHtml(a.status)}</span>
@@ -1023,9 +1038,9 @@ function renderLog(){
   let historyHtml = "";
   if(state.trades.length){
     historyHtml += `<div class="section-title">Historial</div>`;
-    [...state.trades].sort((a,b)=>b.date-a.date).slice(0,30).forEach(t=>{
+    [...state.trades].sort((a,b)=>b.date-a.date).slice(0,30).forEach((t, index)=>{
       historyHtml += `
-        <div class="card">
+        <div class="card fade-in-card" style="animation-delay: ${index * 0.1}s">
           ${t.photo? `<img src="${t.photo}" class="cover">` : ''}
           <div class="meta" style="text-align:center">${fmtDate(t.date)}${t.pnl!=null? ' · <span class="money">$'+t.pnl.toFixed(0)+'</span>':''}${!t.hadTrade? ' · sin trade':''}</div>
         </div>`;
@@ -1993,7 +2008,7 @@ function renderHistory(tradeId = null) {
       const wR = `${fmtDate(wS.getTime())} al ${fmtDate(wE.getTime())}`;
 
       listHtml += `
-        <div class="card" style="background:var(--surface); border:1px solid var(--text); margin-bottom:24px; text-align:center; cursor:pointer" onclick="this.querySelector('.week-trades').style.display = this.querySelector('.week-trades').style.display === 'none' ? 'block' : 'none'">
+        <div class="card fade-in-card" style="background:var(--surface); border:1px solid var(--text); margin-bottom:24px; text-align:center; cursor:pointer" onclick="this.querySelector('.week-trades').style.display = this.querySelector('.week-trades').style.display === 'none' ? 'block' : 'none'">
           <div class="meta" style="margin-bottom:10px; font-weight:700; font-size:12px">Semana del ${wR} ▾</div>
           <div class="rowstats" style="justify-content:center; margin-top:0; gap:20px">
             <div>Trades<strong>${count}</strong></div>
@@ -2002,7 +2017,7 @@ function renderHistory(tradeId = null) {
             <div>PnL %<strong class="money ${weekPnl >= 0 ? 'pos' : 'neg'}">${weekPnlPctStr}</strong></div>
           </div>
           <div class="week-trades" style="display:none; margin-top:16px; border-top:1px solid var(--border); padding-top:12px; text-align:left">
-            ${weekTrades.map(t => {
+            ${weekTrades.map((t, tIdx) => {
               const acc = t.accountId ? state.accounts.find(a => a.id === t.accountId) : null;
               const pnlClass = t.pnl >= 0 ? 'pos' : 'neg';
               const pnlStr = t.pnl != null ? (t.pnl >= 0 ? '$' : '-$') + Math.abs(t.pnl).toFixed(0) : '—';
@@ -2018,7 +2033,7 @@ function renderHistory(tradeId = null) {
                 : '<span style="color:var(--text-dim); font-size:10px">Ninguno</span>';
 
               return `
-                <div class="card" style="cursor:default; margin-bottom:12px; padding:14px;" data-trade-id="${t.id}">
+                <div class="card fade-in-card" style="cursor:default; margin-bottom:12px; padding:14px; animation-delay: ${tIdx * 0.1}s" data-trade-id="${t.id}">
                   ${t.photo ? `<img src="${t.photo}" class="cover" style="margin-bottom:12px" onclick="event.stopPropagation(); openLightbox('${t.photo}')">` : ''}
 
                   <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px">
@@ -2379,7 +2394,7 @@ function renderHeatmap() {
           }
         }, 250);
       } else {
-        toast(`Día ${d}: Sin trades`);
+        // No hacemos nada si no hay trade
       }
     };
     grid.appendChild(dayCell);
