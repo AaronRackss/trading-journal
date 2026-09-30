@@ -1642,7 +1642,9 @@ function renderHistory(tradeId = null) {
     el.innerHTML = `
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px">
         <button class="iconbtn heatmap-controls-btn" onclick="renderHistory()" style="padding:6px"><i data-lucide="arrow-left" style="width:14px; height:14px"></i></button>
-        <h3 style="margin:0">Detalle del día</h3>
+        <h3 style="margin:0; flex-grow:1">Detalle del día</h3>
+          <button class="btn secondary" onclick="openEditTrade('${t.id}')" style="margin-left:8px;">Editar</button>
+          <button class="btn danger" onclick="deleteTrade('${t.id}')" style="margin-left:4px;">Eliminar</button>
       </div>
 
 
@@ -1865,6 +1867,10 @@ function renderHistory(tradeId = null) {
                       <div>PnL %<strong class="money ${pnlClass}">${pctStr}</strong></div>
                     </div>
                     <span class="badge ${t.result === 'TP' ? 'tp' : t.result === 'SL' ? 'sl' : t.result === 'BE' ? 'be' : t.result === 'TIME' ? 'time' : ''}" style="margin-left:0px">${t.result || ''}</span>
+                  </div>
+                  <div style="display:flex; justify-content:center; margin-top:6px; gap:8px">
+                    <button class="iconbtn" onclick="event.stopPropagation(); openEditTrade('${t.id}')">Editar</button>
+                    <button class="iconbtn danger" onclick="event.stopPropagation?.(); deleteTrade('${t.id}')">Eliminar</button>
                   </div>
                 </div>`;
             }).join('')}
@@ -2158,7 +2164,8 @@ function renderHeatmap() {
     dayCell.onclick = () => {
       const trade = state.trades.find(t => t.day === dateStr);
       if(trade) {
-        renderHistory(trade.id);
+        showView('history');
+          renderHistory(trade.id);
       } else {
         const amount = dayPnL === 0 ? "Sin trades" : `$${dayPnL.toFixed(0)}`;
         toast(`Día ${d}: ${amount}`);
