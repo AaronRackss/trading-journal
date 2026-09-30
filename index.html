@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Trading Journal V1</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -21,6 +21,7 @@
     --buffer:#F59E0B; --buffer-soft: rgba(245, 158, 11, 0.15);
     --funded:#10B981; --funded-soft: rgba(16, 185, 129, 0.15);
     --failed:#EF4444; --failed-soft: rgba(239, 68, 68, 0.15);
+    --passed:#A855F7; --passed-soft: rgba(168, 85, 247, 0.15);
     padding-top:env(safe-area-inset-top,0px);
     padding-bottom:env(safe-area-inset-bottom,0px);
   }
@@ -51,6 +52,8 @@
     -webkit-font-smoothing:antialiased;
     display:flex; justify-content:center; align-items:center;
     overflow:hidden;
+    width: 100vw;
+    position: relative;
   }
   .app{
     display:flex; flex-direction:column;
@@ -61,9 +64,9 @@
   }
   @media (min-width: 400px) {
     .app {
-      height: 852px; width: 393px;
-      border: 12px solid #000; border-radius: 40px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      height: 100vh; width: 100vw;
+      border: none; border-radius: 0;
+      box-shadow: none;
     }
   }
   header{
@@ -193,6 +196,7 @@
   .segmented button.sel[data-r="buffer"]{background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);}
   .segmented button.sel[data-r="funded"]{background:var(--funded-soft); color:var(--funded); border-color:var(--funded);}
   .segmented button.sel[data-r="failed"]{background:var(--failed-soft); color:var(--failed); border-color:var(--failed);}
+  .segmented button.sel[data-r="passed"]{background:var(--passed-soft); color:var(--passed); border-color:var(--passed);}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .top-actions{display:flex; justify-content:flex-end; margin-bottom:10px;}
   .iconbtn{
@@ -207,6 +211,7 @@
   .badge.buffer{background:transparent; color:var(--buffer); border:1px solid var(--buffer);}
   .badge.funded{background:transparent; color:var(--funded); border:1px solid var(--funded);}
   .badge.failed{background:transparent; color:var(--failed); border:1px solid var(--failed);}
+  .badge.passed{background:transparent; color:var(--passed); border:1px solid var(--passed);}
   .badge.win{background:var(--win-soft); color:var(--win);}
   .badge.loss{background:var(--loss-soft); color:var(--loss);}
 .badge.tp{background:transparent; color:var(--funded); border:1px solid var(--funded);}   /* verde */
@@ -218,11 +223,18 @@
   max-width:600px;
   margin:auto 0 20px;
 }
-  .toast{
-    position:fixed; left:50%; transform:translateX(-50%);
-    bottom:calc(env(safe-area-inset-bottom,0px) + 70px);
-    background:var(--text); color:var(--bg); padding:9px 16px; border-radius:20px;
-    font-size:13.5px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s;
+  .account-info-fixed {
+    text-align: center;
+    margin: 12px auto;
+    width: 100%;
+    max-width: 400px;
+  }
+  .account-info-fixed .card {
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  .account-info-fixed .rowstats {
+    justify-content: center;
   }
   .toast.show{opacity:1;}
   .privacy-btn{background:none; border:none; font-size:19px; cursor:pointer; padding:6px; margin-top:2px; color:var(--text); display:flex; align-items:center; justify-content:center;}
@@ -360,12 +372,11 @@
 </head>
 <body>
 <div class="app">
-  <header style="display:flex; justify-content:space-between; align-items:flex-start;">
-    <div>
-      <h1>Trading Journal V1</h1>
-      <p id="subtitle">Futures Tracker by Aaronrackss</p>
+  <header style="display:flex; justify-content:center; align-items:center; position:relative;">
+    <div style="display:flex; flex-direction:column; align-items:center">
+      <p id="subtitle" style="text-align:center; margin:0; font-weight:700; font-size:18px; color:var(--text)">Futures Tracker</p>
     </div>
-    <button id="privacyBtn" class="privacy-btn" onclick="togglePrivacy()">
+    <button id="privacyBtn" class="privacy-btn" onclick="togglePrivacy()" style="position:absolute; right:20px">
       <i data-lucide="eye-off"></i>
     </button>
   </header>
@@ -752,9 +763,9 @@ function renderAccounts(showForm){
 
   let tabsHtml = `
     <div class="segmented sticky-tabs">
-      <button class="${accountsFilter==='Total'?'sel':''}" onclick="setAccountsFilter('Total')">Total</button>
       <button class="${accountsFilter==='Active'?'sel':''}" data-r="active" onclick="setAccountsFilter('Active')">Active</button>
       <button class="${accountsFilter==='Evals'?'sel':''}" data-r="eval" onclick="setAccountsFilter('Evals')">Evals</button>
+      <button class="${accountsFilter==='Passed'?'sel':''}" data-r="passed" onclick="setAccountsFilter('Passed')">Passed</button>
       <button class="${accountsFilter==='Buffer'?'sel':''}" data-r="buffer" onclick="setAccountsFilter('Buffer')">Buffer</button>
       <button class="${accountsFilter==='Fundeds'?'sel':''}" data-r="funded" onclick="setAccountsFilter('Fundeds')">Fundeds</button>
       <button class="${accountsFilter==='Failed'?'sel':''}" data-r="failed" onclick="setAccountsFilter('Failed')">Failed</button>
@@ -773,6 +784,13 @@ function renderAccounts(showForm){
   else if(accountsFilter === 'Buffer') filteredAccounts = state.accounts.filter(a => a.status === 'Buffer');
   else if(accountsFilter === 'Fundeds') filteredAccounts = state.accounts.filter(a => a.status === 'Fondeada');
   else if(accountsFilter === 'Failed') filteredAccounts = state.accounts.filter(a => a.status === 'Fallida');
+  else if(accountsFilter === 'Passed') {
+    filteredAccounts = state.accounts.filter(a => {
+      if (a.status === 'Fondeada') return false; // Si ya es fondeada, quizás no quieres que esté en 'Passed' (depende de tu lógica), pero el prompt dice "llegan a su objetivo"
+      const stats = challengeStats(a.id);
+      return a.profitTarget && stats.profitSoFar >= a.profitTarget;
+    });
+  }
 
   let html = tabsHtml + `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
 
@@ -781,11 +799,16 @@ function renderAccounts(showForm){
     const statusClass = a.status === 'En evaluación' ? 'eval' :
                         a.status === 'Buffer' ? 'buffer' :
                         a.status === 'Fondeada' ? 'funded' : 'failed';
+
+    const stats = challengeStats(a.id);
+    const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
+    const finalStatusClass = (isPassed && a.status !== 'Fondeada') ? 'passed' : statusClass;
+
     html += `
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
           <h3 style="margin:0; display:flex; align-items:center; gap:8px">${escapeHtml(a.name)}<i data-lucide="edit-3" style="cursor:pointer; width:14px; height:14px; color:var(--text-dim)" onclick="event.stopPropagation(); openEditAccount('${a.id}')"></i></h3>
-          <span class="badge ${statusClass}">${escapeHtml(a.status)}</span>
+          <span class="badge ${finalStatusClass}">${escapeHtml(a.status)}</span>
         </div>
         <div class="meta">${escapeHtml(a.firm)}</div>
         <div class="rowstats">
@@ -925,16 +948,37 @@ function accountInfoHtml(accId){
   const st = accountStats(a.id);
   const activeCount = state.accounts.filter(x=>x.status!=='Fallida').length;
   const balPct = (a.size && st.balance!=null)? (((st.balance-a.size)/a.size)*100).toFixed(0) : null;
+
+  const statusColor = a.status === 'En evaluación' ? 'var(--eval)' :
+                      a.status === 'Buffer' ? 'var(--buffer)' :
+                      a.status === 'Fondeada' ? 'var(--funded)' :
+                      a.status === 'Fallida' ? 'var(--loss)' : 'var(--be)';
+
+  // Check if it reached the goal but is still in eval/buffer
+  const stats = challengeStats(a.id);
+  const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
+
+  const finalColor = (isPassed && a.status !== 'Fondeada') ? 'var(--passed)' : statusColor;
+
+  const softColor = a.status === 'En evaluación' ? 'var(--eval-soft)' :
+                    a.status === 'Buffer' ? 'var(--buffer-soft)' :
+                    a.status === 'Fondeada' ? 'var(--funded-soft)' :
+                    a.status === 'Fallida' ? 'var(--loss-soft)' : 'var(--be-soft)';
+
+  const finalSoftColor = (isPassed && a.status !== 'Fondeada') ? 'var(--passed-soft)' : softColor;
+
   return `
-    <div class="card">
-      <div class="meta">Fase</div><h3>${escapeHtml(a.status)}</h3>
-      <div class="rowstats">
-        <div>Balance<strong class="money">${st.balance!=null?'$'+st.balance.toFixed(0):'—'}</strong></div>
-        <div>Balance %<strong class="money ${balPct!=null && parseFloat(balPct)>=0 ? 'pos' : 'neg'}">${balPct!=null? balPct+'%':'—'}</strong></div>
-        <div>Objetivo<strong class="money">${a.profitTarget?'$'+a.profitTarget:'—'}</strong></div>
-        <div>Max. DD<strong class="money">${a.maxDrawdown?'$'+a.maxDrawdown:'—'}</strong></div>
+    <div class="account-info-fixed">
+      <div class="card" style="border-color:${finalColor}; background:${finalSoftColor}">
+        <div class="meta" style="text-align:center">Fase</div><h3 style="text-align:center">${escapeHtml(a.status)}</h3>
+        <div class="rowstats" style="justify-content:center">
+          <div style="text-align:center">Balance<strong class="money">${st.balance!=null?'$'+st.balance.toFixed(0):'—'}</strong></div>
+          <div style="text-align:center">Balance %<strong class="money ${balPct!=null && parseFloat(balPct)>=0 ? 'pos' : 'neg'}">${balPct!=null? balPct+'%':'—'}</strong></div>
+          <div style="text-align:center">Objetivo<strong class="money">${a.profitTarget?'$'+a.profitTarget:'—'}</strong></div>
+          <div style="text-align:center">Max. DD<strong class="money">${a.maxDrawdown?'$'+a.maxDrawdown:'—'}</strong></div>
+        </div>
+        <div class="meta" style="margin-top:10px; text-align:center">Cuentas activas ahora mismo: ${activeCount}</div>
       </div>
-      <div class="meta" style="margin-top:10px">Cuentas activas ahora mismo: ${activeCount}</div>
     </div>`;
 }
 function renderLog(){
@@ -1313,6 +1357,13 @@ function renderReview(){
           <div>Cuenta<strong>${acc? escapeHtml(acc.name):'—'}</strong></div>
           <div>PnL $<strong class="money ${t.pnl!=null && t.pnl >= 0 ? 'pos' : 'neg'}">${t.pnl!=null?'$'+t.pnl.toFixed(0):'—'}</strong></div>
           <div>PnL %<strong class="money ${t.pnlPct!=null && t.pnlPct >= 0 ? 'pos' : 'neg'}">${t.pnlPct!=null? t.pnlPct+'%':'—'}</strong></div>
+          <div class="meta" style="display:flex; align-items:center; gap:4px; font-size:11px">
+            <span>🕒 ${t.execTime || '—'}</span>
+            <span style="opacity:0.5">|</span>
+            <span>🌅 ${t.sessionStart || '—'}</span>
+            <span style="opacity:0.5">|</span>
+            <span>🌇 ${t.sessionEnd || '—'}</span>
+          </div>
         </div>
       </div>`;
   }).join("");
@@ -1409,12 +1460,19 @@ let editingPendingId = null;
 function renderFinance(){
   const el = document.getElementById("view-certs");
   const totalFunded = state.certs.filter(c=>c.type==="eval").reduce((a,c)=>a+(c.amount||0),0);
+  const totalFundedEUR = state.certs.filter(c=>c.type==="eval").reduce((a,c)=>a+(c.amountEUR||0),0);
   const paidFromCerts = state.certs.filter(c=>c.type==="payout").reduce((a,c)=>a+(c.amount||0),0);
+  const paidFromCertsEUR = state.certs.filter(c=>c.type==="payout").reduce((a,c)=>a+(c.amountEUR||0),0);
   const paidFromPending = state.pendingPayouts.filter(p=>p.status==="cobrado").reduce((a,p)=>a+(p.amountUSD||0),0);
+  const paidFromPendingEUR = state.pendingPayouts.filter(p=>p.status==="cobrado").reduce((a,p)=>a+(p.amountEUR||0),0);
   const totalPaid = paidFromCerts + paidFromPending;
-  const totalSpent = state.expenses.reduce((a,e)=>a+(e.amount||0),0);
+  const totalPaidEUR = paidFromCertsEUR + paidFromPendingEUR;
+  const totalSpent = state.expenses.reduce((a,e)=>a+(e.amountUSD||0),0);
+  const totalSpentEUR = state.expenses.reduce((a,e)=>a+(e.amountEUR||0),0);
   const totalPending = state.pendingPayouts.filter(p=>p.status==="pendiente").reduce((a,p)=>a+(p.amountUSD||0),0);
+  const totalPendingEUR = state.pendingPayouts.filter(p=>p.status==="pendiente").reduce((a,p)=>a+(p.amountEUR||0),0);
   const net = totalPaid - totalSpent;
+  const netEUR = totalPaidEUR - totalSpentEUR;
 
 
 
@@ -1422,10 +1480,10 @@ function renderFinance(){
   let html = `
     <div class="grid2" style="margin-bottom:8px">
       <div class="card" style="margin-bottom:0"><div class="meta">Fondeado</div><h3 class="money">$${totalFunded.toFixed(0)}</h3></div>
-      <div class="card" style="margin-bottom:0"><div class="meta">Pagado</div><h3 class="money">$${totalPaid.toFixed(0)}</h3></div>
-      <div class="card" style="margin-bottom:0"><div class="meta">Pendiente</div><h3 class="money">$${totalPending.toFixed(0)}</h3></div>
-      <div class="card" style="margin-bottom:0"><div class="meta">Gastado</div><h3 class="money">$${totalSpent.toFixed(0)}</h3></div>
-      <div class="card" style="margin-bottom:0"><div class="meta">Neto real</div><h3 class="money ${net>=0?'pos':'neg'}">${(net>=0?'$':'-$')+Math.abs(net).toFixed(0)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Retirado</div><h3 class="money" style="color:var(--accent)">$${totalPaid.toFixed(0)} <span style="color:white; font-weight:100; opacity:0.5; margin:0 4px">|</span> €${totalPaidEUR.toFixed(0)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Pendiente</div><h3 class="money" style="color:var(--buffer)">$${totalPending.toFixed(0)} <span style="color:white; font-weight:100; opacity:0.5; margin:0 4px">|</span> €${totalPendingEUR.toFixed(0)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Gastado</div><h3 class="money" style="color:var(--loss)">$${totalSpent.toFixed(0)} <span style="color:white; font-weight:100; opacity:0.5; margin:0 4px">|</span> €${totalSpentEUR.toFixed(0)}</h3></div>
+      <div class="card" style="margin-bottom:0"><div class="meta">Neto real</div><h3 class="money" style="color:${net > 0 ? 'var(--accent)' : net < 0 ? 'var(--loss)' : 'var(--be)'}">${(net>=0?'$':'-$')+Math.abs(net).toFixed(0)} <span style="color:white; font-weight:100; opacity:0.5; margin:0 4px">|</span> ${netEUR>=0?'€':'-€'}${Math.abs(netEUR).toFixed(0)}</h3></div>
     </div>
     <div class="segmented" style="margin:12px 0">
       <button class="${financeSubView==='certs'?'sel':''}" data-r="win" onclick="financeSubView='certs'; renderFinance();">Logros</button>
@@ -1434,7 +1492,7 @@ function renderFinance(){
     </div>`;
 
   if(financeSubView==="certs"){
-    html += `<div class="top-actions"><button class="iconbtn" onclick="openNewCert()">+ Añadir logro</button></div>`;
+    html += `<div class="top-actions"><button class="iconbtn" onclick="openNewCert()">+ Añadir Logro</button></div>`;
     if(state.certs.length===0){
       html += `<div class="empty">Cada eval superada y cada payout cobrado aparecerán aquí.</div>`;
     }else{
@@ -1498,7 +1556,7 @@ function renderFinance(){
         </div>`;
     }
   }else{
-    html += `<div class="top-actions"><button class="iconbtn" onclick="openNewExpense()">+ Añadir gasto</button></div>`;
+    html += `<div class="top-actions"><button class="iconbtn" onclick="openNewExpense()">+ Añadir Gasto</button></div>`;
     if(state.expenses.length===0){
       html += `<div class="empty">Evals, resets, activaciones y suscripciones aparecerán aquí.</div>`;
     }else{
@@ -1517,10 +1575,11 @@ function renderFinance(){
             ${e.note? `<div class="meta" style="margin-top:6px">${escapeHtml(e.note)}</div>`:''}
           </div>`;
       });
+      const totalSpentAccumEUR = state.expenses.reduce((a,e)=>a+(e.amountEUR||0),0);
       html += `
         <div class="card" style="background:rgba(209, 67, 67, 0.2); border-color:var(--loss); text-align:center">
           <div class="meta" style="color:var(--text)">Total Invertido (Gastos)</div>
-          <h3 class="money" style="font-size:20px; color:var(--text)">$${totalSpentAccum.toFixed(0)}</h3>
+          <h3 class="money" style="font-size:20px; color:var(--text)">$${totalSpentAccum.toFixed(0)} · €${totalSpentAccumEUR.toFixed(0)}</h3>
         </div>`;
     }
   }
@@ -1553,6 +1612,8 @@ function certFormHtml(){
     <select id="certAccount">${accOptions}</select>
     <label>${type==='eval'?'Capital fondeado ($)':'Importe del payout ($)'}</label>
     <input type="number" step="1" id="certAmount" value="${c&&c.amount!=null?c.amount:''}" placeholder="Ej. 50000">
+    <label>Fecha</label>
+    <input type="date" id="certDate" value="${c? new Date(c.date).toISOString().slice(0,10) : ''}">
     <label>Nota (opcional)</label>
     <input type="text" id="certNote" value="${c?escapeHtml(c.note||''):''}" placeholder="Ej. Segundo intento">
     <label>Foto (opcional)</label>
@@ -1580,11 +1641,13 @@ function saveCert(){
   const amount = amountRaw? parseFloat(amountRaw) : 0;
   const accountId = document.getElementById("certAccount").value || null;
   const note = document.getElementById("certNote").value.trim();
+  const dateVal = document.getElementById("certDate").value;
+  const date = dateVal ? new Date(dateVal + "T12:00:00").getTime() : Date.now();
   if(editingCertId){
     const c = state.certs.find(x=>x.id===editingCertId);
-    c.type=editingCertType; c.accountId=accountId; c.amount=amount; c.note=note; c.photo=editingCertPhoto;
+    c.type=editingCertType; c.accountId=accountId; c.amount=amount; c.note=note; c.photo=editingCertPhoto; c.date=date;
   }else{
-    state.certs.push({id:uid(), type:editingCertType, accountId, amount, note, photo:editingCertPhoto, date:Date.now()});
+    state.certs.push({id:uid(), type:editingCertType, accountId, amount, note, photo:editingCertPhoto, date:date});
   }
   save();
   editingCertPhoto = null;
@@ -1614,6 +1677,8 @@ function expenseFormHtml(){
     <select id="expType" onchange="editingExpenseType=this.value;">${typeOptions}</select>
     <label>Cuenta</label>
     <select id="expAccount">${accOptions}</select>
+    <label>Fecha</label>
+    <input type="date" id="expDate" value="${e ? new Date(e.date).toISOString().slice(0,10) : ''}">
     <div class="grid2">
       <div>
         <label>Importe ($)</label>
@@ -1642,12 +1707,14 @@ function saveExpense(){
   const amountEUR = document.getElementById("expAmountEUR").value;
   const recurring = document.getElementById("expRecurring").checked;
   const note = document.getElementById("expNote").value.trim();
+  const dateVal = document.getElementById("expDate").value;
+  const date = dateVal ? new Date(dateVal + "T12:00:00").getTime() : Date.now();
   if(!accountId || !amountUSD || !amountEUR){ toast("Completa los campos obligatorios"); return; }
   if(editingExpenseId){
     const e = state.expenses.find(x=>x.id===editingExpenseId);
-    e.type=type; e.accountId=accountId; e.amountUSD=parseFloat(amountUSD); e.amountEUR=parseFloat(amountEUR); e.recurring=recurring; e.note=note;
+    e.type=type; e.accountId=accountId; e.amountUSD=parseFloat(amountUSD); e.amountEUR=parseFloat(amountEUR); e.recurring=recurring; e.note=note; e.date=date;
   }else{
-    state.expenses.push({id:uid(), type, accountId, amountUSD:parseFloat(amountUSD), amountEUR:parseFloat(amountEUR), recurring, note, date:Date.now()});
+    state.expenses.push({id:uid(), type, accountId, amountUSD:parseFloat(amountUSD), amountEUR:parseFloat(amountEUR), recurring, note, date:date});
   }
   save();
   toast("Gasto guardado");
@@ -1966,15 +2033,21 @@ function renderHistory(tradeId = null) {
                   </div>
 
                   <div class="rowstats" style="margin-top:0; justify-content:space-between; width:100%; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px">
-                    <div>PnL <strong class="money ${pnlClass}">${pnlStr} (${pctStr})</strong></div>
+                    <div>PnL <strong class="money ${pnlClass}" style="font-size:18px">${pnlStr} (${pctStr})</strong></div>
                     <div style="display:flex; gap:12px">
                       <div>Riesgo <strong style="color:var(--text)">${t.riskAmount != null ? '$'+t.riskAmount.toFixed(0) : '—'}</strong></div>
                       <div>RR <strong style="color:var(--text)">${t.rrTarget || '—'}</strong></div>
                     </div>
                   </div>
 
-                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-dim); margin-bottom:8px">
-                    <div>Ejecución: <strong style="color:var(--text)">${t.execTime || '—'}</strong></div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-dim); margin-bottom:8px">
+                    <div style="display:flex; align-items:center; gap:4px">
+                      <span>Ejecución: <strong style="color:var(--text); font-size:13px">${t.execTime || '—'}</strong></span>
+                      <span style="opacity:0.5">|</span>
+                      <span>Inicio: <span style="color:var(--text-dim); font-size:13px">${t.sessionStart || '—'}</span></span>
+                      <span style="opacity:0.5">|</span>
+                      <span>Fin: <span style="color:var(--text-dim); font-size:13px">${t.sessionEnd || '—'}</span></span>
+                    </div>
                   </div>
 
                   <div style="font-size:11px; color:var(--text-dim); background:var(--bg); padding:8px; border-radius:8px; border:1px solid var(--border)">
