@@ -233,7 +233,7 @@
   .bar{background:var(--bg); border:1px solid var(--border); border-radius:6px; height:7px; overflow:hidden; margin-top:4px;}
   .bar > div{height:100%; background:var(--accent);}
   .bar.risk > div{background:var(--loss);}
-  .cover{width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; margin-bottom:10px; display:block; background:var(--bg); cursor:zoom-in;}
+  .cover{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px; display:block; background:var(--bg); cursor:zoom-in;}
   .section-title{font-size:12px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:.03em; margin:22px 0 8px;}
   .section-title:first-child{margin-top:0;}
   .heatmap-container{
@@ -398,6 +398,8 @@ let editingAccountId = null;
 let editingTradeId = null;
 let accountsFilter = "Total";
 
+let selectedTradeReviewId = null;
+let selectedTradeHistoryId = null;
 async function load(){
   try{
     const { data, error } = await _supabase
@@ -540,7 +542,85 @@ document.addEventListener("click", e=>{
   }
 });
 
-// ---------- Nav ----------
+function selectTradeReview(id){
+  selectedTradeReviewId = id;
+  renderReview();
+}
+
+function selectTradeHistory(id){
+  selectedTradeHistoryId = id;
+  renderHistory();
+}
+
+function renderTradeDetails(tradeId){
+  if(!tradeId) return "";
+  const t = state.trades.find(x => x.id === tradeId);
+  if(!t) return "";
+  const acc = t.accountId ? state.accounts.find(a => a.id === t.accountId) : null;
+
+  const pnlClass = t.pnl >= 0 ? 'pos' : 'neg';
+  const pnlColor = t.pnl >= 0 ? 'var(--win-soft)' : 'var(--loss-soft)';
+  const pnlBorder = t.pnl >= 0 ? 'var(--win)' : 'var(--loss)';
+
+  const mistakesHtml = Array.isArray(t.mistakes)
+    ? t.mistakes.map(m => `<div class="mistake-chip selected">${escapeHtml(m)}</div>`).join("")
+    : (t.mistakes ? t.mistakes.split(",").map(m => `<div class="mistake-chip selected">${escapeHtml(m.trim())}</div>`).join("") : "");
+
+  return `
+    <div class="section-title">Detalle del Trade</div>
+    <div style="text-align:center; margin-bottom:16px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+        <h3 style="margin:0">${new Date(t.date).toLocaleDateString("es-ES", {day:"2-digit", month:"2-digit", year:"numeric"})}</h3>
+        <span class="badge ${t.result === 'TP' ? 'tp' : t.result === 'SL' ? 'sl' : t.result === 'BE' ? 'be' : t.result === 'TIME' ? 'time' : ''}" style="font-size:14px">${t.result || ''}</span>
+      </div>
+      <div class="card" style="background:${pnlColor}; border-color:${pnlBorder}">
+        <div class="grid2" style="text-align:center">
+          <div>
+            <div class="meta" style="color:var(--text-dim)">PnL Total</div>
+            <div class="money ${pnlClass}" style="font-size:22px; font-weight:800">
+              ${t.pnl != null ? (t.pnl >= 0 ? '$' : '-$') + Math.abs(t.pnl).toFixed(0) : '—'}
+            </div>
+          </div>
+          <div>
+            <div class="meta" style="color:var(--text-dim)">Porcentaje</div>
+            <div class="money ${pnlClass}" style="font-size:22px; font-weight:800">
+              ${t.pnlPct != null ? t.pnlPct.toFixed(2) + '%' : '—'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Ejecución y Técnica</div>
+      <div class="grid2">
+        <div class="meta">Inicio<strong style="color:var(--text); display:block; font-size:15px">${t.sessionStart || '—'}</strong></div>
+        <div class="meta">Fin<strong style="color:var(--text); display:block; font-size:15px">${t.sessionEnd || '—'}</strong></div>
+        <div class="meta">Ejecución<strong style="color:var(--text); display:block; font-size:15px">${t.execTime || '—'}</strong></div>
+        <div class="meta">Noticias<strong style="color:var(--text); display:block; font-size:15px">${escapeHtml(t.newsToday || 'Ninguna')}</strong></div>
+        <div class="meta">Riesgo ($)<strong style="color:var(--text); display:block; font-size:15px">${t.riskAmount != null ? '$'+t.riskAmount.toFixed(0) : '—'}</strong></div>
+        <div class="meta">Riesgo (%)<strong style="color:var(--text); display:block; font-size:15px">${t.riskPct != null ? t.riskPct+'%' : '—'}</strong></div>
+        <div class="meta">RR Objetivo<strong style="color:var(--text); display:block; font-size:15px">${t.rrTarget != null ? t.rrTarget : '—'}</strong></div>
+        <div class="meta">Timeframe<strong style="color:var(--text); display:block; font-size:15px">${escapeHtml(t.timeframe || '—')}</strong></div>
+      </div>
+      <div class="meta" style="margin-top:12px">Estrategia:</div>
+      <div style="background:var(--bg); padding:12px; border-radius:8px; font-size:14px; border:1px solid var(--border); line-height:1.4">${escapeHtml(t.strategy || 'Sin detalles')}</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Psicología y Reflexión</div>
+      <div class="grid2">
+        <div class="meta">Estado Emocional<strong style="color:var(--text); display:block; font-size:15px">${escapeHtml(t.feeling || '—')}</strong></div>
+        <div class="meta">Valoración<strong style="color:var(--text); display:block; font-size:15px">${t.rating || '—'}</strong></div>
+      </div>
+      <div class="meta" style="margin-top:12px">Errores cometidos:</div>
+      <div class="mistake-chip-container" style="justify-content: flex-start">${mistakesHtml || '<div class="meta">Ninguno</div>'}</div>
+      <div class="meta" style="margin-top:12px">Notas adicionales:</div>
+      <div style="background:var(--bg); padding:12px; border-radius:8px; font-size:14px; border:1px solid var(--border)">${escapeHtml(t.notes || '—')}</div>
+    </div>
+  `;
+}
+
 document.querySelectorAll("nav button").forEach(btn=>{
   btn.addEventListener("click", ()=> showView(btn.dataset.view));
 });
@@ -1225,8 +1305,9 @@ function renderReview(){
 
   const dayRows = [...tradeEntries].sort((a,b)=>a.date-b.date).map(t=>{
     const acc = t.accountId? state.accounts.find(a=>a.id===t.accountId) : null;
+    const isSelected = selectedTradeReviewId === t.id;
     return `
-      <div class="card" style="margin-bottom:6px">
+      <div class="card" style="margin-bottom:6px; cursor:pointer; ${isSelected ? 'border-color:var(--accent); background:var(--accent-soft)' : ''}" onclick="selectTradeReview('${t.id}')">
         <div class="rowstats" style="margin-top:0">
           <div>Día<strong>${fmtDate(t.date)}</strong></div>
           <div>Cuenta<strong>${acc? escapeHtml(acc.name):'—'}</strong></div>
@@ -1235,6 +1316,8 @@ function renderReview(){
         </div>
       </div>`;
   }).join("");
+
+  const tradeDetailsHtml = renderTradeDetails(selectedTradeReviewId);
 
   const mKey = monthKey(Date.now());
   const monthTrades = state.trades.filter(t=>monthKey(t.date)===mKey);
@@ -1267,6 +1350,7 @@ function renderReview(){
     ${count? `
     <div class="section-title">Días de la semana</div>
     ${dayRows}
+    ${tradeDetailsHtml}
     <div class="card">
       <div class="meta">Mejor día</div>
       <h3 class="money">${bestDay? bestDay[0]+' · $'+bestDay[1].toFixed(0) : '—'}</h3>
@@ -1856,21 +1940,50 @@ function renderHistory(tradeId = null) {
               const pnlClass = t.pnl >= 0 ? 'pos' : 'neg';
               const pnlStr = t.pnl != null ? (t.pnl >= 0 ? '$' : '-$') + Math.abs(t.pnl).toFixed(0) : '—';
               const pctStr = t.pnlPct != null ? t.pnlPct.toFixed(2) + '%' : '—';
+
+              const accBalance = acc ? accountStats(acc.id).balance : null;
+              const balanceStr = accBalance != null ? '$' + accBalance.toFixed(0) : '—';
+              const statusClass = acc ? (acc.status === 'En evaluación' ? 'eval' : acc.status === 'Buffer' ? 'buffer' : acc.status === 'Fondeada' ? 'funded' : 'failed') : '';
+
+              const mistakes = Array.isArray(t.mistakes) ? t.mistakes : (t.mistakes ? t.mistakes.split(",") : []);
+              const mistakesHtml = mistakes.length > 0
+                ? mistakes.map(m => `<span style="background:var(--loss-soft); color:var(--loss); padding:2px 6px; border-radius:4px; font-size:10px; margin-right:4px">${escapeHtml(m.trim())}</span>`).join("")
+                : '<span style="color:var(--text-dim); font-size:10px">Ninguno</span>';
+
               return `
-                <div class="card" style="cursor:pointer; margin-bottom:10px; padding:10px" onclick="event.stopPropagation(); renderHistory('${t.id}')">
-                  ${t.photo ? `<img src="${t.photo}" class="cover">` : ''}
-                  <div style="display:flex; justify-content:center; align-items:center; gap:12px">
-                    <div class="rowstats" style="margin-top:0; display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
-                      <div>Día<strong>${fmtDate(t.date)}</strong></div>
-                      <div>Cuenta<strong>${acc ? escapeHtml(acc.name) : '—'}</strong></div>
-                      <div>PnL $<strong class="money ${pnlClass}">${pnlStr}</strong></div>
-                      <div>PnL %<strong class="money ${pnlClass}">${pctStr}</strong></div>
+                <div class="card" style="cursor:default; margin-bottom:12px; padding:14px;" data-trade-id="${t.id}">
+                  ${t.photo ? `<img src="${t.photo}" class="cover" style="margin-bottom:12px" onclick="event.stopPropagation(); openLightbox('${t.photo}')">` : ''}
+
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px">
+                    <div>
+                      <div style="font-weight:700; font-size:14px">${fmtDate(t.date)}</div>
+                      <div style="font-size:12px; color:var(--text-dim)">
+                        ${acc ? escapeHtml(acc.name) : '—'} · <span class="money">${balanceStr}</span>
+                        <span class="badge ${statusClass}" style="font-size:9px; padding:0 4px; margin-left:4px">${acc ? escapeHtml(acc.status) : ''}</span>
+                      </div>
                     </div>
-                    <span class="badge ${t.result === 'TP' ? 'tp' : t.result === 'SL' ? 'sl' : t.result === 'BE' ? 'be' : t.result === 'TIME' ? 'time' : ''}" style="margin-left:0px">${t.result || ''}</span>
+                    <span class="badge ${t.result === 'TP' ? 'tp' : t.result === 'SL' ? 'sl' : t.result === 'BE' ? 'be' : t.result === 'TIME' ? 'time' : ''}" style="font-size:12px">${t.result || ''}</span>
                   </div>
-                  <div style="display:flex; justify-content:center; margin-top:6px; gap:8px">
-                    <button class="iconbtn" onclick="event.stopPropagation(); openEditTrade('${t.id}')">Editar</button>
-                    <button class="iconbtn danger" onclick="event.stopPropagation?.(); deleteTrade('${t.id}')">Eliminar</button>
+
+                  <div class="rowstats" style="margin-top:0; justify-content:space-between; width:100%; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px">
+                    <div>PnL <strong class="money ${pnlClass}">${pnlStr} (${pctStr})</strong></div>
+                    <div style="display:flex; gap:12px">
+                      <div>Riesgo <strong style="color:var(--text)">${t.riskAmount != null ? '$'+t.riskAmount.toFixed(0) : '—'}</strong></div>
+                      <div>RR <strong style="color:var(--text)">${t.rrTarget || '—'}</strong></div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-dim); margin-bottom:8px">
+                    <div>Ejecución: <strong style="color:var(--text)">${t.execTime || '—'}</strong></div>
+                  </div>
+
+                  <div style="font-size:11px; color:var(--text-dim); background:var(--bg); padding:8px; border-radius:8px; border:1px solid var(--border)">
+                    <div style="margin-bottom:4px"><strong style="color:var(--text)">Errores:</strong> ${mistakesHtml}</div>
+                  </div>
+
+                  <div style="display:flex; justify-content:flex-end; margin-top:10px; gap:8px">
+                    <button class="iconbtn" style="padding:4px 8px; font-size:11px" onclick="event.stopPropagation(); openEditTrade('${t.id}')">Editar</button>
+                    <button class="iconbtn danger" style="padding:4px 8px; font-size:11px" onclick="event.stopPropagation?.(); deleteTrade('${t.id}')">Eliminar</button>
                   </div>
                 </div>`;
             }).join('')}
@@ -2163,12 +2276,37 @@ function renderHeatmap() {
 
     dayCell.onclick = () => {
       const trade = state.trades.find(t => t.day === dateStr);
-      if(trade) {
+      if (trade) {
+        selectTradeHistory(trade.id);
         showView('history');
-          renderHistory(trade.id);
+
+        setTimeout(() => {
+          const tradeElement = document.querySelector(`.card[data-trade-id="${trade.id}"]`);
+
+          if (tradeElement) {
+            const weekContainer = tradeElement.closest('.week-trades');
+            if (weekContainer) {
+              weekContainer.style.display = 'block';
+            }
+
+            tradeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Determinar color de resaltado según resultado
+            let highlightColor = 'var(--accent-soft)';
+            if (trade.result === 'TP') highlightColor = 'var(--win-soft)';
+            else if (trade.result === 'SL') highlightColor = 'var(--loss-soft)';
+            else if (trade.result === 'BE') highlightColor = 'var(--be-soft)';
+            else if (trade.result === 'TIME') {
+              highlightColor = trade.pnl > 0 ? 'var(--win-soft)' : (trade.pnl < 0 ? 'var(--loss-soft)' : 'var(--be-soft)');
+            }
+
+            tradeElement.style.transition = 'background 0.3s';
+            tradeElement.style.background = highlightColor;
+            setTimeout(() => { tradeElement.style.background = ''; }, 1000);
+          }
+        }, 250);
       } else {
-        const amount = dayPnL === 0 ? "Sin trades" : `$${dayPnL.toFixed(0)}`;
-        toast(`Día ${d}: ${amount}`);
+        toast(`Día ${d}: Sin trades`);
       }
     };
     grid.appendChild(dayCell);
