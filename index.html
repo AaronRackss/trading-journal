@@ -804,14 +804,25 @@ function renderAccounts(showForm){
   }
 
   let filteredAccounts = state.accounts;
-  if(accountsFilter === 'Active') filteredAccounts = state.accounts.filter(a => a.status !== 'Fallida');
-  else if(accountsFilter === 'Evals') filteredAccounts = state.accounts.filter(a => a.status === 'En evaluación');
-  else if(accountsFilter === 'Buffer') filteredAccounts = state.accounts.filter(a => a.status === 'Buffer');
+  if(accountsFilter === 'Active') filteredAccounts = state.accounts.filter(a => {
+    const stats = challengeStats(a.id);
+    const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
+    return a.status !== 'Fallida' || isPassed;
+  });
+  else if(accountsFilter === 'Evals') filteredAccounts = state.accounts.filter(a => {
+    const stats = challengeStats(a.id);
+    const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
+    return a.status === 'En evaluación' && !isPassed;
+  });
+  else if(accountsFilter === 'Buffer') filteredAccounts = state.accounts.filter(a => {
+    const stats = challengeStats(a.id);
+    const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
+    return a.status === 'Buffer' && !isPassed;
+  });
   else if(accountsFilter === 'Fundeds') filteredAccounts = state.accounts.filter(a => a.status === 'Fondeada');
   else if(accountsFilter === 'Failed') filteredAccounts = state.accounts.filter(a => a.status === 'Fallida');
   else if(accountsFilter === 'Passed') {
     filteredAccounts = state.accounts.filter(a => {
-      if (a.status === 'Fondeada') return false; // Si ya es fondeada, quizás no quieres que esté en 'Passed' (depende de tu lógica), pero el prompt dice "llegan a su objetivo"
       const stats = challengeStats(a.id);
       return a.profitTarget && stats.profitSoFar >= a.profitTarget;
     });
@@ -827,13 +838,25 @@ function renderAccounts(showForm){
 
     const stats = challengeStats(a.id);
     const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
-    const finalStatusClass = (isPassed && a.status !== 'Fondeada') ? 'passed' : statusClass;
+
+    let finalStatusClass = statusClass;
+    let displayStatus = a.status;
+
+    if (isPassed) {
+      if (a.status === 'Buffer') {
+        finalStatusClass = 'funded';
+        displayStatus = 'Fondeada';
+      } else if (a.status === 'En evaluación') {
+        finalStatusClass = 'passed';
+        displayStatus = 'Passed';
+      }
+    }
 
     html += `
       <div class="card fade-in-card" style="animation-delay: ${index * 0.1}s">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
           <h3 style="margin:0; display:flex; align-items:center; gap:8px">${escapeHtml(a.name)}<i data-lucide="edit-3" style="cursor:pointer; width:14px; height:14px; color:var(--text-dim)" onclick="event.stopPropagation(); openEditAccount('${a.id}')"></i></h3>
-          <span class="badge ${finalStatusClass}">${escapeHtml(a.status)}</span>
+          <span class="badge ${finalStatusClass}">${escapeHtml(displayStatus)}</span>
         </div>
         <div class="meta">${escapeHtml(a.firm)}</div>
         <div class="rowstats">
