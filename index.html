@@ -407,16 +407,18 @@
   </header>
 
   <main>
-    <section id="view-accounts" class="view"></section>
-    <section id="view-log" class="view active"></section>
+    <section id="view-accounts" class="view active"></section>
+    <section id="view-log" class="view"></section>
+    <section id="view-analysis" class="view"></section>
     <section id="view-certs" class="view"></section>
     <section id="view-history" class="view"></section>
   </main>
 
   <nav>
-    <button data-view="accounts"><i data-lucide="wallet"></i>Cuentas</button>
-    <button data-view="log" class="active"><i data-lucide="book-open"></i>Registro</button>
+    <button data-view="accounts" class="active"><i data-lucide="wallet"></i>Cuentas</button>
+    <button data-view="log"><i data-lucide="book-open"></i>Registro</button>
     <button data-view="history"><i data-lucide="history"></i>Historial</button>
+    <button data-view="analysis"><i data-lucide="bar-chart-3"></i>Análisis</button>
     <button data-view="certs"><i data-lucide="coins"></i>Finanzas</button>
   </nav>
 </div>
@@ -667,6 +669,7 @@ function showView(name){
   document.querySelector('nav button[data-view="'+name+'"]').classList.add("active");
   if(name==="accounts") renderAccounts();
   if(name==="log") renderLog();
+  if(name==="analysis") renderAnalysis();
   if(name==="certs") renderFinance();
   if(name==="history") renderHistory();
 }
@@ -830,7 +833,29 @@ function renderAccounts(showForm){
     return a.status === 'En evaluación' && a.profitTarget && stats.profitSoFar >= a.profitTarget;
   });
 
-  let html = tabsHtml + `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
+  let html = tabsHtml;
+
+  if(state.accounts.length > 0){
+    const totalGlobalBalance = state.accounts.reduce((sum, a) => {
+      const st = accountStats(a.id);
+      return sum + (st.balance || 0);
+    }, 0);
+    const totalGlobalPnl = state.accounts.reduce((sum, a) => {
+      const st = accountStats(a.id);
+      return sum + (st.totalPnl || 0);
+    }, 0);
+
+    html += `
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--accent); background:var(--accent-soft); margin-bottom:20px">
+        <div class="meta" style="color:var(--accent); font-weight:700; text-transform:uppercase; font-size:11px">Balance Total Consolidado</div>
+        <h2 class="money" style="font-size:32px; margin:4px 0; font-weight:800">$${totalGlobalBalance.toFixed(0)}</h2>
+        <div class="rowstats" style="justify-content:center; margin-top:0">
+          <div>PnL Global<strong class="money ${totalGlobalPnl >= 0 ? 'pos' : 'neg'}">${(totalGlobalPnl>=0?'$':'-$')+Math.abs(totalGlobalPnl).toFixed(0)}</strong></div>
+        </div>
+      </div>`;
+  }
+
+  html += `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
 
   filteredAccounts.forEach((a, index)=>{
     const st = accountStats(a.id);
@@ -872,11 +897,54 @@ function renderAccounts(showForm){
           <div>Avg Win<strong class="money pos">$${st.avgWin || '0'}</strong></div>
           <div>Avg Loss<strong class="money neg">$${st.avgLoss || '0'}</strong></div>
         </div>
+        <div style="height:60px; margin-top:12px">
+          <canvas id="chart-${a.id}"></canvas>
+        </div>
         ${challengeBlockHtml(a)}
       </div>`;
+
+    // Render the specific chart for this account immediately after the loop or as a separate step
+    setTimeout(() => renderAccountChart(a.id), 0);
   });
   el.innerHTML = html;
   lucide.createIcons();
+}
+
+function renderAccountChart(accountId){
+  const canvas = document.getElementById(`chart-${accountId}`);
+  if(!canvas) return;
+  const trades = state.trades.filter(t => t.accountId === accountId && t.pnl != null).sort((a,b)=>a.date-b.date);
+  if(trades.length === 0) return;
+
+  let cumulative = 0;
+  const data = trades.map(t => {
+    cumulative += t.pnl;
+    return cumulative;
+  });
+
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: trades.map(t => fmtDate(t.date)),
+      datasets: [{
+        data: data,
+        borderColor: '#3B82F6',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: true } },
+      scales: {
+        x: { display: false },
+        y: { display: false }
+      }
+    }
+  });
 }
 function openNewAccount(){ editingAccountId=null; renderAccounts(true); }
 function openEditAccount(id){ editingAccountId=id; renderAccounts(true); }
@@ -946,7 +1014,7 @@ let logUsedBE = false;
 let logRating = null;
 let logPhotoPreview = null;
 let logDraft = {};
-const LOG_FIELD_IDS = ['logSessionStart','logSessionEnd','logExecTime','logNews','logPnl','logPnlPct','logRisk','logRiskPct','logRR','logStrategy','logTimeframe','logBeMoment','logNotes','logFeeling','logMistakes'];
+const LOG_FIELD_IDS = ['logSessionStart','logSessionEnd','logExecTime','logNews','logPnl','logPnlPct','logRisk','logRiskPct','logRR','logStrategy','logTimeframe','logAsset','logBeMoment','logNotes','logFeeling','logMistakes'];
 function captureLogDraft(){
   LOG_FIELD_IDS.forEach(id=>{
     const el = document.getElementById(id);
@@ -1153,6 +1221,8 @@ function renderLog(){
       <textarea id="logStrategy" placeholder="Qué viste, por qué entraste…">${escapeHtml(d.logStrategy||'')}</textarea>
       <label>Temporalidad de entrada</label>
       <input type="text" id="logTimeframe" value="${escapeHtml(d.logTimeframe||'')}" placeholder="Ej. M5">
+      <label>Activo / Símbolo</label>
+      <input type="text" id="logAsset" value="${escapeHtml(d.logAsset||'')}" placeholder="Ej. NAS100, GOLD, EURUSD">
       <label class="chk" style="border:none; padding:4px 0; display:flex; align-items:center; justify-content:center; gap:10px">
         <input type="checkbox" id="logUsedBE" ${logUsedBE?'checked':''} onchange="captureLogDraft(); logUsedBE=this.checked; renderLog();" style="margin:0">
         <span style="margin:0">Usé break-even</span>
@@ -1278,6 +1348,7 @@ function saveTrade(){
     riskAmount: (logHadTrade && d.logRisk)? parseFloat(d.logRisk) : null,
     riskPct: (logHadTrade && d.logRiskPct)? parseFloat(d.logRiskPct) : null,
     rrTarget: (logHadTrade && d.logRR)? parseFloat(d.logRR) : null,
+    asset: d.logAsset || "",
     result: logHadTrade? logResult : null,
     strategy: logHadTrade? (d.logStrategy||"") : "",
     timeframe: logHadTrade? (d.logTimeframe||"") : "",
@@ -1333,6 +1404,7 @@ function openEditTrade(id){
     logRR: t.rrTarget != null ? t.rrTarget.toString() : "",
     logStrategy: t.strategy || "",
     logTimeframe: t.timeframe || "",
+    logAsset: t.asset || "",
     logBeMoment: t.beMoment || "",
     logNotes: t.notes || "",
     logFeeling: t.feeling || "",
@@ -1368,6 +1440,203 @@ function cancelTradeEdit(){
 }
 
 // ---------- Weekly review ----------
+function renderAnalysis(){
+  const el = document.getElementById("view-analysis");
+  if(!state.trades || state.trades.length === 0){
+    el.innerHTML = '<div class="empty">Aún no hay datos suficientes para el análisis. Registra algunos trades primero.</div>';
+    return;
+  }
+
+  // 1. Curva de Equidad (Equity Curve)
+  const sortedTrades = [...state.trades].sort((a,b)=>a.date-b.date);
+  let cumulativePnl = 0;
+  const equityData = sortedTrades.map(t => {
+    if(t.pnl != null) cumulativePnl += t.pnl;
+    return cumulativePnl;
+  });
+  const labels = sortedTrades.map(t => fmtDate(t.date));
+
+  // 2. Análisis de Activos
+  const assetStats = {};
+  sortedTrades.forEach(t => {
+    if(!t.hadTrade || !t.asset) return;
+    const asset = t.asset.toUpperCase();
+    if(!assetStats[asset]) assetStats[asset] = { wins: 0, losses: 0, pnl: 0, count: 0 };
+    assetStats[asset].count++;
+    assetStats[asset].pnl += (t.pnl || 0);
+    if(tradeOutcome(t) === 'win') assetStats[asset].wins++;
+    if(tradeOutcome(t) === 'loss') assetStats[asset].losses++;
+  });
+
+  let assetsHtml = '';
+  Object.entries(assetStats).sort((a,b)=>b[1].pnl - a[1].pnl).forEach(([name, s]) => {
+    const wr = s.count ? Math.round((s.wins / (s.wins + s.losses || 1)) * 100) : 0;
+    assetsHtml += `
+      <div class="card fade-in-card">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <h3>${name}</h3>
+          <span class="money ${s.pnl >= 0 ? 'pos' : 'neg'}">$${s.pnl.toFixed(0)}</span>
+        </div>
+        <div class="rowstats">
+          <div>Trades<strong>${s.count}</strong></div>
+          <div>Winrate<strong>${wr}%</strong></div>
+        </div>
+      </div>`;
+  });
+
+  // 3. Análisis de Horas de Ejecución (Peak Trading Hour)
+  const executionHourStats = {};
+  let totalTradeMinutes = 0;
+  let tradeCountForHour = 0;
+
+  sortedTrades.forEach(t => {
+    if(!t.hadTrade || !t.execTime) return;
+    const timeParts = t.execTime.split(':');
+    if(timeParts.length < 2) return;
+
+    const hour = parseInt(timeParts[0]);
+    const min = parseInt(timeParts[1]);
+    if(isNaN(hour) || isNaN(min)) return;
+
+    const totalMins = hour * 60 + min;
+    executionHourStats[hour] = (executionHourStats[hour] || 0) + 1;
+    totalTradeMinutes += totalMins;
+    tradeCountForHour++;
+  });
+
+  let hourDistributionHtml = '';
+  const hoursSorted = Object.entries(executionHourStats).sort((a,b)=>a[0].localeCompare(b[0]));
+
+  hoursSorted.forEach(([hour, count]) => {
+    const percentage = Math.round((count / tradeCountForHour) * 100);
+    hourDistributionHtml += `
+      <div class="card fade-in-card" style="display:flex; justify-content:space-between; align-items:center; padding:8px 16px; margin-bottom:6px">
+        <div class="meta">Hora ${hour}:00</div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <div class="bar" style="width:60px; margin:0"><div style="width:${percentage}%"></div></div>
+          <span style="font-size:12px; font-weight:700">${percentage}%</span>
+        </div>
+      </div>`;
+  });
+
+  let avgHourDisplay = '—';
+  if (tradeCountForHour > 0) {
+    const avgTotalMins = Math.round(totalTradeMinutes / tradeCountForHour);
+    const h = Math.floor(avgTotalMins / 60) % 24;
+    const m = avgTotalMins % 60;
+    avgHourDisplay = `${h}:${m.toString().padStart(2, '0')}`;
+  }
+
+  const peakHourHtml = avgHourDisplay !== '—' ? `
+    <div class="card fade-in-card" style="text-align:center; border-color:var(--accent); background:var(--accent-soft); margin-bottom:16px">
+      <div class="meta">Hora Promedio de Ejecución</div>
+      <h3 style="font-size:28px; margin:4px 0">${avgHourDisplay}</h3>
+      <div class="meta">La mayoría de tus trades ocurren alrededor de esta hora</div>
+    </div>` : '';
+
+  // 4. Streak Analysis (Rachas)
+  let maxWinStreak = 0, maxLossStreak = 0, currentWinStreak = 0, currentLossStreak = 0;
+  const mistakeCounts = {};
+  sortedTrades.forEach(t => {
+    if(!t.hadTrade) return;
+    const outcome = tradeOutcome(t);
+    if(outcome === 'win') {
+      currentWinStreak++;
+      currentLossStreak = 0;
+      if(currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
+    } else if(outcome === 'loss') {
+      currentLossStreak++;
+      currentWinStreak = 0;
+      if(currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
+    } else {
+      currentWinStreak = 0;
+      currentLossStreak = 0;
+    }
+
+    // Count mistakes
+    if(t.mistakes) {
+      const mistakes = Array.isArray(t.mistakes) ? t.mistakes : t.mistakes.split(",");
+      mistakes.forEach(m => {
+        const mistake = m.trim();
+        if(mistake) mistakeCounts[mistake] = (mistakeCounts[mistake] || 0) + 1;
+      });
+    }
+  });
+
+  const streaksHtml = `
+    <div class="grid2">
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--win)">
+        <div class="meta">Racha Máx. Victorias</div>
+        <h3 class="money pos" style="font-size:24px">${maxWinStreak}</h3>
+      </div>
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--loss)">
+        <div class="meta">Racha Máx. Derrotas</div>
+        <h3 class="money neg" style="font-size:24px">${maxLossStreak}</h3>
+      </div>
+    </div>`;
+
+  // Find Top Mistake
+  let topMistake = null;
+  let maxMistakeCount = 0;
+  Object.entries(mistakeCounts).forEach(([m, count]) => {
+    if(count > maxMistakeCount) {
+      maxMistakeCount = count;
+      topMistake = m;
+    }
+  });
+
+  const insightHtml = topMistake ? `
+    <div class="section-title">Insight de Disciplina</div>
+    <div class="card fade-in-card" style="border-color:var(--loss); background:var(--loss-soft); display:flex; align-items:center; gap:12px">
+      <div style="font-size:24px">⚠️</div>
+      <div>
+        <div class="meta" style="color:var(--loss); font-weight:700">Tu error más recurrente: ${topMistake}</div>
+        <div style="font-size:13px">Has cometido este error ${maxMistakeCount} veces. Enfócate en corregirlo para mejorar tu consistencia.</div>
+      </div>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="section-title">Curva de Equidad</div>
+    <div class="card">
+      <canvas id="equityChart" style="width:100%; max-height:300px"></canvas>
+    </div>
+
+    <div class="section-title">Análisis de Rachas</div>
+    ${streaksHtml}
+
+    <div class="section-title">Distribución Horaria de Trades</div>
+    ${peakHourHtml}
+    ${insightHtml}
+  `;
+
+  // Render Chart.js
+  const ctx = document.getElementById('equityChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'PnL Acumulado ($)',
+        data: equityData,
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#A0A0A0', maxRotation: 0 } },
+        y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#A0A0A0' } }
+      }
+    }
+  });
+}
+
 function startOfWeek(ts){
   const d = new Date(ts);
   const day = d.getDay();
