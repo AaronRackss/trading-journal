@@ -1008,19 +1008,36 @@ function accountInfoHtml(accId){
   const stats = challengeStats(a.id);
   const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
 
-  const finalColor = (isPassed && a.status !== 'Fondeada') ? 'var(--passed)' : statusColor;
+  // Logic for the final color
+  let finalColor = statusColor;
+  let finalSoftColor = a.status === 'En evaluación' ? 'var(--eval-soft)' :
+                      a.status === 'Buffer' ? 'var(--buffer-soft)' :
+                      a.status === 'Fondeada' ? 'var(--funded-soft)' :
+                      a.status === 'Fallida' ? 'var(--loss-soft)' : 'var(--be-soft)';
 
-  const softColor = a.status === 'En evaluación' ? 'var(--eval-soft)' :
-                    a.status === 'Buffer' ? 'var(--buffer-soft)' :
-                    a.status === 'Fondeada' ? 'var(--funded-soft)' :
-                    a.status === 'Fallida' ? 'var(--loss-soft)' : 'var(--be-soft)';
+  if (isPassed) {
+    if (a.status === 'Buffer') {
+      finalColor = 'var(--funded)';
+      finalSoftColor = 'var(--funded-soft)';
+    } else if (a.status === 'En evaluación') {
+      finalColor = 'var(--passed)';
+      finalSoftColor = 'var(--passed-soft)';
+    }
+  }
 
-  const finalSoftColor = (isPassed && a.status !== 'Fondeada') ? 'var(--passed-soft)' : softColor;
+  let displayStatus = a.status;
+  if (isPassed) {
+    if (a.status === 'Buffer') {
+      displayStatus = 'Fondeada';
+    } else if (a.status === 'En evaluación') {
+      displayStatus = 'Passed';
+    }
+  }
 
   return `
     <div class="account-info-fixed">
       <div class="card" style="border-color:${finalColor}; background:${finalSoftColor}">
-        <div class="meta" style="text-align:center">Fase</div><h3 style="text-align:center">${escapeHtml(a.status)}</h3>
+        <div class="meta" style="text-align:center">Fase</div><h3 style="text-align:center">${escapeHtml(displayStatus)}</h3>
         <div class="rowstats" style="justify-content:center">
           <div style="text-align:center">Balance<strong class="money">${st.balance!=null?'$'+st.balance.toFixed(0):'—'}</strong></div>
           <div style="text-align:center">Balance %<strong class="money ${balPct!=null && parseFloat(balPct)>=0 ? 'pos' : 'neg'}">${balPct!=null? balPct+'%':'—'}</strong></div>
