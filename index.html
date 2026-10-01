@@ -819,14 +819,16 @@ function renderAccounts(showForm){
     const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
     return a.status === 'Buffer' && !isPassed;
   });
-  else if(accountsFilter === 'Fundeds') filteredAccounts = state.accounts.filter(a => a.status === 'Fondeada');
+  else if(accountsFilter === 'Fundeds') filteredAccounts = state.accounts.filter(a => {
+    const stats = challengeStats(a.id);
+    const isPassed = a.profitTarget && stats.profitSoFar >= a.profitTarget;
+    return a.status === 'Fondeada' || (a.status === 'Buffer' && isPassed);
+  });
   else if(accountsFilter === 'Failed') filteredAccounts = state.accounts.filter(a => a.status === 'Fallida');
-  else if(accountsFilter === 'Passed') {
-    filteredAccounts = state.accounts.filter(a => {
-      const stats = challengeStats(a.id);
-      return a.profitTarget && stats.profitSoFar >= a.profitTarget;
-    });
-  }
+  else if(accountsFilter === 'Passed') filteredAccounts = state.accounts.filter(a => {
+    const stats = challengeStats(a.id);
+    return a.status === 'En evaluación' && a.profitTarget && stats.profitSoFar >= a.profitTarget;
+  });
 
   let html = tabsHtml + `<div class="top-actions"><button class="iconbtn" onclick="openNewAccount()">+ Nueva cuenta</button></div>`;
 
