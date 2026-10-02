@@ -213,10 +213,10 @@
     background:var(--surface); color:var(--text-dim); font-weight:650; font-size:13.5px;
     cursor:pointer; font-family:inherit;
   }
-  .segmented button.sel[data-r="win"]{background:rgba(76, 193, 126, 0.2); color:var(--win); border-color:var(--win);}
-  .segmented button.sel[data-r="loss"]{background:rgba(226, 100, 95, 0.2); color:var(--loss); border-color:var(--loss);}
-  .segmented button.sel[data-r="be"]{background:rgba(35, 131, 226, 0.2); color:var(--accent); border-color:var(--accent);}
-  .segmented button.sel[data-r="active"]{background:var(--be-soft); color:var(--be); border-color:var(--be);}
+  .segmented button.sel[data-r="tp"], .segmented button.sel[data-r="win"]{background:rgba(16, 185, 129, 0.2); color:var(--win); border-color:var(--win);}
+  .segmented button.sel[data-r="sl"], .segmented button.sel[data-r="loss"]{background:rgba(239, 68, 68, 0.2); color:var(--loss); border-color:var(--loss);}
+  .segmented button.sel[data-r="be"], .segmented button.sel[data-r="neutral"]{background:rgba(35, 131, 226, 0.2); color:var(--accent); border-color:var(--accent);}
+  .segmented button.sel[data-r="time"], .segmented button.sel[data-r="active"]{background:var(--be-soft); color:var(--be); border-color:var(--be);}
   .segmented button.sel[data-r="eval"]{background:var(--eval-soft); color:var(--eval); border-color:var(--eval);}
   .segmented button.sel[data-r="buffer"]{background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);}
   .segmented button.sel[data-r="funded"]{background:var(--funded-soft); color:var(--funded); border-color:var(--funded);}
@@ -353,46 +353,91 @@
     color: var(--loss);
     border-color: var(--loss);
   }
-  .mistake-analysis-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 12px;
+  .backtest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px;
   }
-  .mistake-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .mistake-row .info {
-    flex: 1;
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .mistake-row .impact-bar-container {
-    flex: 2;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    height: 8px;
+  .backtest-grid .card {
+    margin-bottom: 0;
+    padding: 0;
     overflow: hidden;
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid var(--border);
   }
-  .mistake-row .impact-bar {
-    height: 100%;
-    background: var(--loss);
-    transition: width 0.3s ease;
+  .backtest-grid .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.5);
+    border-color: var(--text);
   }
-  .mistake-row .cost {
-    width: 80px;
-    text-align: right;
+  .backtest-grid .cover {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 0;
+    margin-bottom: 0;
+    cursor: zoom-in;
+    transition: opacity 0.3s ease;
+  }
+  .backtest-grid .card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .backtest-grid .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
     font-size: 13px;
-    font-weight: 700;
-    color: var(--loss);
+    background: var(--surface);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    table-layout: fixed;
   }
-
+  .matrix-table th, .matrix-table td {
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid var(--border);
+    width: 25%;
+  }
+  .matrix-table th {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+  .matrix-winner {
+    background: var(--win-soft) !important;
+    color: var(--win) !important;
+    font-weight: 800 !important;
+    border: 2px solid var(--win) !important;
+  }
+  .matrix-value {
+    font-size: 16px;
+    font-weight: 700;
+    display: block;
+  }
+  .matrix-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 2px;
+  }
 </style>
 </head>
 <body>
@@ -412,13 +457,14 @@
     <section id="view-analysis" class="view"></section>
     <section id="view-certs" class="view"></section>
     <section id="view-history" class="view"></section>
+    <section id="view-backtest" class="view"></section>
   </main>
 
   <nav>
     <button data-view="accounts" class="active"><i data-lucide="wallet"></i>Cuentas</button>
     <button data-view="log"><i data-lucide="book-open"></i>Registro</button>
     <button data-view="history"><i data-lucide="history"></i>Historial</button>
-    <button data-view="analysis"><i data-lucide="bar-chart-3"></i>Análisis</button>
+    <button data-view="backtest"><i data-lucide="bar-chart-3"></i>Backtest</button>
     <button data-view="certs"><i data-lucide="coins"></i>Finanzas</button>
   </nav>
 </div>
@@ -462,6 +508,7 @@ async function load(){
   if(!state.certs) state.certs = [];
   if(!state.expenses) state.expenses = [];
   if(!state.pendingPayouts) state.pendingPayouts = [];
+  if(!state.backtests) state.backtests = [];
 }
 function togglePrivacy(){
   const isPrivacyActive = document.body.classList.contains("privacy");
@@ -672,6 +719,7 @@ function showView(name){
   if(name==="analysis") renderAnalysis();
   if(name==="certs") renderFinance();
   if(name==="history") renderHistory();
+  if(name==="backtest") renderBacktests();
 }
 
 // ---------- Accounts view ----------
@@ -1648,7 +1696,10 @@ function startOfWeek(ts){
 function weekKey(ts){ return String(startOfWeek(ts).getTime()); }
 function monthKey(ts){ const d = new Date(ts); return d.getFullYear()+"-"+d.getMonth(); }
 function fmtDate(ts){
-  return new Date(ts).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"});
+  const d = new Date(ts);
+  const day = d.getDate();
+  const month = d.toLocaleDateString("es-ES", {month:"long"});
+  return `${day} ${month.charAt(0).toUpperCase() + month.slice(1)}`;
 }
 function renderReview(){
   const el = document.getElementById("view-review");
@@ -1784,7 +1835,461 @@ function saveReview(key){
   toast("Revisión guardada");
 }
 
-// ---------- Finance: certificate wall + expense tracker ----------
+// ---------- Backtest View ----------
+let editingBacktestId = null;
+let backtestPhotoPreview = null;
+let backtestResult = null;
+let backtestIfvg = null;
+let backtestRating = null;
+let backtestSetup = "";
+let backtestNote = "";
+let backtestResultFilter = "All";
+let backtestIfvgFilter = "All";
+let backtestSessionFilter = "All";
+let backtestDateFilter = "";
+
+function renderBacktests(showForm) {
+  const el = document.getElementById("view-backtest");
+  if (showForm) {
+    el.innerHTML = backtestFormHtml();
+    bindBacktestForm();
+    return;
+  }
+
+  // --- Stats Calculation ---
+  const getAdvancedStats = (trades) => {
+    const total = trades.length;
+    const wins = trades.filter(b => b.result === 'TP');
+    const losses = trades.filter(b => b.result === 'SL');
+    const decisive = wins.length + losses.length;
+    const winrate = decisive ? Math.round((wins.length / decisive) * 100) : 0;
+
+    const grossProfit = wins.length;
+    const grossLoss = losses.length;
+    const profitFactor = grossLoss !== 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
+    const expectancy = decisive ? ((wins.length - losses.length) / decisive).toFixed(2) : '0.00';
+
+    return { total, winrate, decisive, profitFactor, expectancy, wins: wins.length, losses: losses.length };
+  };
+
+  const statsAll = getAdvancedStats(state.backtests);
+  const totalAll = statsAll.total;
+  const winrateAll = statsAll.winrate;
+  const decisiveAll = statsAll.decisive;
+
+  // --- Matrix Calculation ---
+  const calculateMatrix = () => {
+    const sessions = ['London', 'New York'];
+    const ifvgs = ['Pre-market', 'In session'];
+
+    const matrixData = [];
+    let globalBest = { wr: -1, label: 'Ninguno' };
+
+    ifvgs.forEach(ifvg => {
+      const row = { ifvg, cells: [] };
+      sessions.forEach(session => {
+        const filtered = state.backtests.filter(b => b.session === session && b.ifvg === ifvg);
+        const wins = filtered.filter(b => b.result === 'TP').length;
+        const losses = filtered.filter(b => b.result === 'SL').length;
+        const decisive = wins + losses;
+        const wr = decisive ? Math.round((wins / decisive) * 100) : 0;
+        const cellData = { session, wr, count: filtered.length };
+        row.cells.push(cellData);
+        if (wr > globalBest.wr) globalBest = { wr, label: `${session} + ${ifvg}` };
+      });
+      matrixData.push(row);
+    });
+
+    const getStats = (filterKey, filterVal) => {
+      const filtered = state.backtests.filter(b => b[filterKey] === filterVal);
+      const wins = filtered.filter(b => b.result === 'TP').length;
+      const losses = filtered.filter(b => b.result === 'SL').length;
+      const decisive = wins + losses;
+      return { wr: decisive ? Math.round((wins / decisive) * 100) : 0, count: filtered.length };
+    };
+
+    const sessionTotals = sessions.map(s => getStats('session', s));
+    const ifvgTotals = ifvgs.map(i => getStats('ifvg', i));
+
+    return `
+      <div class="section-title" style="text-align:center">Matriz de Rentabilidad Cruzada</div>
+      <table class="matrix-table">
+        <thead>
+          <tr style="background:rgba(255,255,255,0.08)">
+            <th>IFVG \\ Sesión</th>
+            ${sessions.map(s => `<th>${s}</th>`).join('')}
+            <th style="border-left: 2px solid var(--border)">Total IFVG</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${matrixData.map((row, i) => `
+            <tr>
+              <td style="background:rgba(255,255,255,0.03); font-weight:700">${row.ifvg}</td>
+              ${row.cells.map(cell => {
+                const isBest = cell.wr === globalBest.wr && globalBest.wr !== -1 && cell.count > 0;
+                return `<td class="${isBest ? 'matrix-winner' : ''}">
+                  <span class="matrix-value">${cell.wr}%</span>
+                  <span class="matrix-label">${cell.count} trades</span>
+                </td>`;
+              }).join('')}
+              <td style="border-left: 2px solid var(--border); font-weight:700">
+                ${ifvgTotals[i].wr}% <small>(${ifvgTotals[i].count})</small>
+              </td>
+            </tr>`).join('')}
+          <tr style="background:rgba(255,255,255,0.08); font-weight:700">
+            <td>Total Sesión</td>
+            ${sessionTotals.map(st => `<td>${st.wr}% <small>(${st.count})</small></td>`).join('')}
+            <td style="border-left: 2px solid var(--border)">Global</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--win); background:var(--win-soft); margin-bottom:16px">
+        <div class="meta" style="color:var(--win); font-weight:700; text-transform:uppercase; font-size:11px">Combinación Ganadora</div>
+        <div style="font-size:18px; font-weight:800; color:var(--text)">${globalBest.label} <span style="color:var(--win)">(${globalBest.wr}%)</span></div>
+      </div>`;
+  };
+
+  const matrixHtml = calculateMatrix();
+
+  // Apply Combined Filter for stats
+  const filteredForStats = state.backtests.filter(b => {
+    let matchResult = true;
+    if (backtestResultFilter !== 'All') matchResult = (b.result === backtestResultFilter);
+    let matchIfvg = true;
+    if (backtestIfvgFilter !== 'All') matchIfvg = (b.ifvg === backtestIfvgFilter);
+    let matchSession = true;
+    if (backtestSessionFilter !== 'All') matchSession = (b.session === backtestSessionFilter);
+    let matchDate = true;
+    if (backtestDateFilter) {
+      const tradeDateStr = new Date(b.date).toISOString().slice(0,10);
+      matchDate = (backtestDateFilter === tradeDateStr);
+    }
+    return matchResult && matchIfvg && matchSession && matchDate;
+  });
+
+  const statsFilt = getAdvancedStats(filteredForStats);
+  const totalFilt = statsFilt.total;
+  const winrateFilt = statsFilt.winrate;
+  const decisiveFilt = statsFilt.decisive;
+
+  const getWRColor = (wr) => {
+    if (wr < 40) return 'var(--loss)';
+    if (wr < 60) return 'var(--text-dim)';
+    return 'var(--win)';
+  };
+
+  const getDelta = (filt, all) => {
+    const diff = filt - all;
+    if (diff === 0) return '';
+    return `<span style="font-size:10px; margin-left:4px; color:${diff > 0 ? 'var(--win)' : 'var(--loss)'}">${diff > 0 ? '↑' : '↓'}${Math.abs(diff)}%</span>`;
+  };
+
+  let html = `
+    ${matrixHtml}
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--border); background:var(--surface)">
+        <div class="meta" style="color:var(--text-dim); font-weight:700; text-transform:uppercase; font-size:10px">General</div>
+        <div class="rowstats" style="justify-content:center; margin-top:4px; font-size:12px">
+          <div>Total<strong style="color:var(--text)">${statsAll.total}</strong></div>
+          <div>WR<strong style="color:${getWRColor(statsAll.winrate)}">${statsAll.winrate}%</strong></div>
+          <div>PF<strong style="color:var(--text)">${statsAll.profitFactor}</strong></div>
+          <div>Exp<strong style="color:var(--text)">${statsAll.expectancy}</strong></div>
+        </div>
+      </div>
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--border); background:var(--surface)">
+        <div class="meta" style="color:var(--text-dim); font-weight:700; text-transform:uppercase; font-size:10px">Filtrado</div>
+        <div class="rowstats" style="justify-content:center; margin-top:4px; font-size:12px">
+          <div>Total<strong style="color:var(--text)">${statsFilt.total}</strong></div>
+          <div>WR<strong style="color:${getWRColor(statsFilt.winrate)}">${statsFilt.winrate}%${getDelta(statsFilt.winrate, statsAll.winrate)}</strong></div>
+          <div>PF<strong style="color:var(--text)">${statsFilt.profitFactor}</strong></div>
+          <div>Exp<strong style="color:var(--text)">${statsFilt.expectancy}</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
+      <button class="${backtestSessionFilter === 'All' ? 'sel' : ''}" style="${backtestSessionFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestSessionFilter='All'; renderBacktests()">All</button>
+      <button class="${backtestSessionFilter === 'London' ? 'sel' : ''}" data-r="win" onclick="backtestSessionFilter='London'; renderBacktests()">London</button>
+      <button class="${backtestSessionFilter === 'New York' ? 'sel' : ''}" data-r="be" onclick="backtestSessionFilter='New York'; renderBacktests()">New York</button>
+    </div>
+    <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
+      <button class="${backtestIfvgFilter === 'All' ? 'sel' : ''}" style="${backtestIfvgFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestIfvgFilter='All'; renderBacktests()">All</button>
+      <button class="${backtestIfvgFilter === 'Pre-market' ? 'sel' : ''}" style="${backtestIfvgFilter === 'Pre-market' ? 'background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);' : ''}" onclick="backtestIfvgFilter='Pre-market'; renderBacktests()">Pre-market</button>
+      <button class="${backtestIfvgFilter === 'In session' ? 'sel' : ''}" style="${backtestIfvgFilter === 'In session' ? 'background:var(--passed-soft); color:var(--passed); border-color:var(--passed);' : ''}" onclick="backtestIfvgFilter='In session'; renderBacktests()">In session</button>
+    </div>
+    <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
+      <button class="${backtestResultFilter === 'All' ? 'sel' : ''}" style="${backtestResultFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestResultFilter='All'; renderBacktests()">All</button>
+      <button class="${backtestResultFilter === 'TP' ? 'sel' : ''}" data-r="win" onclick="backtestResultFilter='TP'; renderBacktests()">TP</button>
+      <button class="${backtestResultFilter === 'SL' ? 'sel' : ''}" data-r="loss" onclick="backtestResultFilter='SL'; renderBacktests()">SL</button>
+      <button class="${backtestResultFilter === 'BE' ? 'sel' : ''}" data-r="be" onclick="backtestResultFilter='BE'; renderBacktests()">BE</button>
+    </div>
+    <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px">
+      <label style="margin:0; white-space:nowrap">Filtrar por fecha:</label>
+      <input type="date" id="btDateFilter" value="${backtestDateFilter}" style="width:auto; text-align:left" onchange="backtestDateFilter=this.value; renderBacktests()">
+      <button class="iconbtn" style="padding:6px 10px; font-size:11px" onclick="backtestDateFilter=''; renderBacktests()">Limpiar</button>
+    </div>
+    <div class="top-actions">
+      <button class="iconbtn" onclick="renderBacktests(true)">+ Nuevo Backtest</button>
+    </div>`;
+
+  if (state.backtests.length === 0) {
+    html += `<div class="empty">No hay trades de backtest registrados.</div>`;
+  } else {
+    // Apply Combined Filter (Category + Date)
+    const filtered = state.backtests.filter(b => {
+      // 1. Result Filter
+      let matchResult = true;
+      if (backtestResultFilter !== 'All') matchResult = (b.result === backtestResultFilter);
+
+      // 2. IFVG Filter
+      let matchIfvg = true;
+      if (backtestIfvgFilter !== 'All') matchIfvg = (b.ifvg === backtestIfvgFilter);
+
+      // 3. Session Filter
+      let matchSession = true;
+      if (backtestSessionFilter !== 'All') matchSession = (b.session === backtestSessionFilter);
+
+      // 4. Date Filter
+      let matchDate = true;
+      if (backtestDateFilter) {
+        const filterDateStr = backtestDateFilter; // YYYY-MM-DD
+        const tradeDateStr = new Date(b.date).toISOString().slice(0,10);
+        matchDate = (filterDateStr === tradeDateStr);
+      }
+
+      return matchResult && matchIfvg && matchSession && matchDate;
+    });
+
+    if (filtered.length === 0) {
+      html += `<div class="empty">No hay trades que coincidan con los filtros seleccionados.</div>`;
+    } else {
+      html += `<div class="backtest-grid">`;
+      [...filtered].sort((a, b) => b.date - a.date).forEach((b, index) => {
+        const resBadge = b.result === 'TP' ? 'tp' : b.result === 'SL' ? 'sl' : b.result === 'BE' ? 'be' : 'time';
+
+        html += `
+          <div class="card fade-in-card" style="animation-delay: ${index * 0.1}s">
+            <img src="${b.photo}" class="cover" onclick="openLightbox('${b.photo}')">
+            <div class="card-content">
+              <div class="card-header">
+                <h3 style="margin:0; font-size:15px; font-weight:500">${fmtDate(b.date)} <span style="font-weight:400; opacity:0.8">· ${b.execTime || '—'}</span></h3>
+                <span class="badge ${resBadge}" style="font-size:11px">${b.result || ''}</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-top:0; font-size:12px">
+                <div style="display:flex; flex-direction:column; gap:4px">
+                  <div style="color:var(--text-dim)">Sesión <strong style="color:${b.session === 'London' ? 'var(--win)' : b.session === 'New York' ? 'var(--accent)' : 'var(--text)'}; font-size:14px">${escapeHtml(b.session || '—')}</strong></div>
+                  <div style="color:var(--text-dim)">IFVG <strong style="color:${b.ifvg === 'Pre-market' ? 'var(--buffer)' : b.ifvg === 'In session' ? 'var(--passed)' : 'var(--text)'}; font-size:14px">${escapeHtml(b.ifvg || '—')}</strong></div>
+                </div>
+                <div style="text-align:right; color:var(--text-dim)">Setup <strong style="color:var(--text)">${escapeHtml(b.setup || '—')}</strong></div>
+              </div>
+              <div style="background:var(--bg); padding:8px; border-radius:8px; border:1px solid var(--border); font-size:12px; margin:8px 0; font-style: italic; color:var(--text-dim)">
+                "${escapeHtml(b.note || 'Sin notas')}"
+              </div>
+              <div class="card-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%">
+                <div class="meta" style="margin:0">Rating: <strong style="color:var(--text)">${b.rating || '—'}</strong></div>
+                <div style="display:flex; gap:8px; margin-left:auto">
+                  <button class="iconbtn" style="padding:4px 8px; font-size:11px" onclick="openEditBacktest('${b.id}')">Editar</button>
+                  <button class="iconbtn danger" style="padding:4px 8px; font-size:11px" onclick="deleteBacktest('${b.id}')">Eliminar</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+    }
+  }
+
+  el.innerHTML = html;
+  lucide.createIcons();
+}
+
+function setBtSession(s) {
+  const hiddenInput = document.getElementById("btSessionHidden");
+  if (hiddenInput) hiddenInput.value = s;
+
+  const buttons = document.querySelectorAll("#session-buttons button");
+  if (buttons) {
+    buttons.forEach(btn => {
+      btn.classList.toggle("sel", btn.textContent.trim() === s);
+    });
+  }
+}
+
+function backtestFormHtml() {
+  const b = editingBacktestId ? state.backtests.find(x => x.id === editingBacktestId) : null;
+
+  const resultOptions = ['TP', 'SL', 'BE'].map(r =>
+    `<button class="${(b && b.result === r) || (backtestResult === r) ? 'sel' : ''}"
+             data-r="${r.toLowerCase()}"
+             onclick="backtestResult='${r}'; renderBacktests(true)">${r}</button>`
+  ).join("");
+
+  const ifvgOptions = ['Pre-market', 'In session'].map(i =>
+    `<button class="${(b && b.ifvg === i) || (backtestIfvg === i) ? 'sel' : ''}"
+             data-r="${i === 'Pre-market' ? 'buffer' : 'passed'}"
+             onclick="backtestIfvg='${i}'; renderBacktests(true)">${i}</button>`
+  ).join("");
+
+  return `
+    <div class="view-log-container">
+      <label>Foto del Trade (Obligatoria)</label>
+      <input type="file" accept="image/*" id="btPhotoInput">
+      ${(b && b.photo) || backtestPhotoPreview ? `
+        <img src="${(b && b.photo) || backtestPhotoPreview}" class="cover" style="margin-top:8px">
+      ` : ""}
+
+      <label>Fecha</label>
+      <input type="date" id="btDate" value="${b ? new Date(b.date).toISOString().slice(0,10) : ''}">
+
+      <label>Hora de Ejecución</label>
+      <input type="time" id="btExecTime" value="${b ? b.execTime : ''}">
+
+      <label>Resultado</label>
+      <div class="segmented" style="justify-content:center">
+        ${resultOptions}
+      </div>
+
+      <label>Tipo de IFVG</label>
+      <div class="segmented" style="justify-content:center">
+        ${ifvgOptions}
+      </div>
+
+      <label>Sesión</label>
+      <div id="session-buttons" class="segmented" style="justify-content:center; margin-bottom:12px">
+        ${['London', 'New York'].map(s => `
+          <button class="${(b && b.session === s) || (document.getElementById('btSessionHidden')?.value === s) ? 'sel' : ''}"
+                  data-r="${s === 'London' ? 'win' : 'be'}"
+                  onclick="setBtSession('${s}')">${s}</button>
+        `).join("")}
+      </div>
+      <input type="hidden" id="btSessionHidden" value="${b ? b.session : ''}">
+
+
+      <label>Setup / Estrategia</label>
+      <input type="text" id="btSetup" value="${b ? escapeHtml(b.setup || '') : ''}" placeholder="Ej. Silver Bullet, Liquidity Sweep...">
+
+      <label>Valoración del Trade</label>
+      <div class="segmented" style="justify-content:center">
+        ${['malo', 'meh', 'perfecto'].map(r => `
+          <button class="${(b && b.rating === r) || (editingBacktestId === null && backtestRating === r) ? 'sel' : ''}"
+                  data-r="${r === 'malo' ? 'loss' : r === 'perfecto' ? 'win' : 'be'}"
+                  onclick="backtestRating='${r}'; renderBacktests(true)">${r.charAt(0).toUpperCase() + r.slice(1)}</button>
+        `).join("")}
+      </div>
+
+      <label>Notas de Aprendizaje</label>
+      <textarea id="btNote" placeholder="¿Qué aprendiste de este trade?">${b ? escapeHtml(b.note || '') : ''}</textarea>
+
+      <button class="btn" style="margin-top:20px" onclick="saveBacktest()">${b ? 'Guardar Cambios' : 'Guardar Backtest'}</button>
+      ${b ? `<button class="btn danger" style="margin-top:8px" onclick="deleteBacktest('${b.id}')">Eliminar</button>` : ""}
+      <button class="btn secondary" style="margin-top:8px" onclick="renderBacktests()">Cancelar</button>
+    </div>
+  `;
+}
+
+function bindBacktestForm() {
+  const input = document.getElementById("btPhotoInput");
+  if (!input) return;
+  input.addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      backtestPhotoPreview = await compressImage(file, 900, 0.6);
+      renderBacktests(true);
+    } catch (err) {
+      console.error(err);
+      toast("No se pudo procesar la imagen");
+    }
+  });
+}
+
+function saveBacktest() {
+  const photo = (editingBacktestId ? state.backtests.find(x => x.id === editingBacktestId)?.photo : null) || backtestPhotoPreview;
+  if (!photo) { toast("La foto es obligatoria"); return; }
+
+  const dateVal = document.getElementById("btDate").value;
+  if (!dateVal) { toast("Selecciona una fecha"); return; }
+
+  const date = new Date(dateVal + "T12:00:00").getTime();
+  const execTime = document.getElementById("btExecTime").value;
+  const setup = document.getElementById("btSetup").value.trim();
+  const note = document.getElementById("btNote").value.trim();
+
+  // If editing, we should take the value from the state OR the modified global variable
+  // But a better way is to always use the global variable if it was changed.
+  const finalResult = editingBacktestId ? (backtestResult || state.backtests.find(x => x.id === editingBacktestId).result) : backtestResult;
+  if (!finalResult) { toast("Selecciona el resultado"); return; }
+
+  const finalIfvg = editingBacktestId ? (backtestIfvg || state.backtests.find(x => x.id === editingBacktestId).ifvg) : backtestIfvg;
+  if (!finalIfvg) { toast("Selecciona el tipo de IFVG"); return; }
+
+  const finalSession = document.getElementById("btSessionHidden").value;
+  if (!finalSession) { toast("Selecciona la sesión"); return; }
+
+  const finalRating = editingBacktestId ? (backtestRating || state.backtests.find(x => x.id === editingBacktestId).rating) : backtestRating;
+
+  const tradeData = {
+    id: editingBacktestId || uid(),
+    photo,
+    date,
+    execTime,
+    result: finalResult,
+    ifvg: finalIfvg,
+    session: finalSession,
+    setup,
+    note,
+    rating: finalRating,
+    createdAt: Date.now()
+  };
+
+  if (editingBacktestId) {
+    const idx = state.backtests.findIndex(x => x.id === editingBacktestId);
+    state.backtests[idx] = tradeData;
+  } else {
+    state.backtests.push(tradeData);
+  }
+
+  save();
+  editingBacktestId = null;
+  backtestPhotoPreview = null;
+  backtestResult = null;
+  backtestIfvg = null;
+  backtestRating = null;
+  backtestSetup = "";
+  backtestNote = "";
+  toast(editingBacktestId ? "Cambios guardados" : "Backtest guardado");
+  renderBacktests();
+}
+
+function openEditBacktest(id) {
+  editingBacktestId = id;
+  const b = state.backtests.find(x => x.id === id);
+  if (!b) return;
+
+  backtestResult = b.result;
+  backtestIfvg = b.ifvg;
+  backtestPhotoPreview = b.photo;
+
+  renderBacktests(true);
+}
+
+function deleteBacktest(id) {
+  if (!confirm("¿Eliminar este backtest?")) return;
+
+  // Use a new array to ensure the filter is applied correctly
+  const filteredBacktests = state.backtests.filter(x => x.id !== id);
+
+  if (filteredBacktests.length === state.backtests.length) {
+    toast("No se pudo encontrar el registro para eliminar");
+    return;
+  }
+
+  state.backtests = filteredBacktests;
+  save();
+  editingBacktestId = null;
+  toast("Backtest eliminado");
+  renderBacktests();
+}
+
 let financeSubView = "certs";
 let editingCertType = "eval";
 let editingCertId = null;
