@@ -438,6 +438,51 @@
     display: block;
     margin-bottom: 2px;
   }
+  .collapsible-section {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .collapsible-header {
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: rgba(255,255,255,0.03);
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .collapsible-header:active {
+    background: rgba(255,255,255,0.08);
+  }
+  .collapsible-header .title {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .collapsible-content {
+    padding: 16px;
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+  .collapsible-content.show {
+    display: block;
+  }
+  .chevron {
+    transition: transform 0.3s ease;
+    width: 16px;
+    height: 16px;
+  }
+  .rotated {
+    transform: rotate(180deg);
+  }
 </style>
 </head>
 <body>
@@ -1986,46 +2031,64 @@ function renderBacktests(showForm) {
 
   let html = `
     ${matrixHtml}
-    <div class="grid2" style="margin-bottom:16px">
-      <div class="card fade-in-card" style="text-align:center; border-color:var(--border); background:var(--surface)">
-        <div class="meta" style="color:var(--text-dim); font-weight:700; text-transform:uppercase; font-size:10px">General</div>
-        <div class="rowstats" style="justify-content:center; margin-top:4px; font-size:12px">
-          <div>Total<strong style="color:var(--text)">${statsAll.total}</strong></div>
-          <div>WR<strong style="color:${getWRColor(statsAll.winrate)}">${statsAll.winrate}%</strong></div>
-          <div>PF<strong style="color:var(--text)">${statsAll.profitFactor}</strong></div>
-          <div>Exp<strong style="color:var(--text)">${statsAll.expectancy}</strong></div>
+
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('show'); this.querySelector('.chevron').classList.toggle('rotated')">
+        <div class="title"><i data-lucide="bar-chart-2"></i> Estadísticas de Rendimiento</div>
+        <i data-lucide="chevron-down" class="chevron"></i>
+      </div>
+      <div class="collapsible-content">
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="card fade-in-card" style="text-align:center; border-color:var(--border); background:var(--surface)">
+            <div class="meta" style="color:var(--text-dim); font-weight:700; text-transform:uppercase; font-size:10px">General</div>
+            <div class="rowstats" style="justify-content:center; margin-top:4px; font-size:12px">
+              <div>Total<strong style="color:var(--text)">${statsAll.total}</strong></div>
+              <div>WR<strong style="color:${getWRColor(statsAll.winrate)}">${statsAll.winrate}%</strong></div>
+              <div>PF<strong style="color:var(--text)">${statsAll.profitFactor}</strong></div>
+              <div>Exp<strong style="color:var(--text)">${statsAll.expectancy}</strong></div>
+            </div>
+          </div>
+          <div class="card fade-in-card" style="text-align:center; border-color:var(--border); background:var(--surface)">
+            <div class="meta" style="color:var(--text-dim); font-weight:700; text-transform:uppercase; font-size:10px">Filtrado</div>
+            <div class="rowstats" style="justify-content:center; margin-top:4px; font-size:12px">
+              <div>Total<strong style="color:var(--text)">${statsFilt.total}</strong></div>
+              <div>WR<strong style="color:${getWRColor(statsFilt.winrate)}">${statsFilt.winrate}%${getDelta(statsFilt.winrate, statsAll.winrate)}</strong></div>
+              <div>PF<strong style="color:var(--text)">${statsFilt.profitFactor}</strong></div>
+              <div>Exp<strong style="color:var(--text)">${statsFilt.expectancy}</strong></div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card fade-in-card" style="text-align:center; border-color:var(--border); background:var(--surface)">
-        <div class="meta" style="color:var(--text-dim); font-weight:700; text-transform:uppercase; font-size:10px">Filtrado</div>
-        <div class="rowstats" style="justify-content:center; margin-top:4px; font-size:12px">
-          <div>Total<strong style="color:var(--text)">${statsFilt.total}</strong></div>
-          <div>WR<strong style="color:${getWRColor(statsFilt.winrate)}">${statsFilt.winrate}%${getDelta(statsFilt.winrate, statsAll.winrate)}</strong></div>
-          <div>PF<strong style="color:var(--text)">${statsFilt.profitFactor}</strong></div>
-          <div>Exp<strong style="color:var(--text)">${statsFilt.expectancy}</strong></div>
+    </div>
+
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('show'); this.querySelector('.chevron').classList.toggle('rotated')">
+        <div class="title"><i data-lucide="filter"></i> Filtros de Análisis</div>
+        <i data-lucide="chevron-down" class="chevron"></i>
+      </div>
+      <div class="collapsible-content">
+        <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
+          <button class="${backtestSessionFilter === 'All' ? 'sel' : ''}" style="${backtestSessionFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestSessionFilter='All'; renderBacktests()">All</button>
+          <button class="${backtestSessionFilter === 'London' ? 'sel' : ''}" data-r="win" onclick="backtestSessionFilter='London'; renderBacktests()">London</button>
+          <button class="${backtestSessionFilter === 'New York' ? 'sel' : ''}" data-r="be" onclick="backtestSessionFilter='New York'; renderBacktests()">New York</button>
+        </div>
+        <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
+          <button class="${backtestIfvgFilter === 'All' ? 'sel' : ''}" style="${backtestIfvgFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestIfvgFilter='All'; renderBacktests()">All</button>
+          <button class="${backtestIfvgFilter === 'Pre-market' ? 'sel' : ''}" style="${backtestIfvgFilter === 'Pre-market' ? 'background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);' : ''}" onclick="backtestIfvgFilter='Pre-market'; renderBacktests()">Pre-market</button>
+          <button class="${backtestIfvgFilter === 'In session' ? 'sel' : ''}" style="${backtestIfvgFilter === 'In session' ? 'background:var(--passed-soft); color:var(--passed); border-color:var(--passed);' : ''}" onclick="backtestIfvgFilter='In session'; renderBacktests()">In session</button>
+        </div>
+        <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
+          <button class="${backtestResultFilter === 'All' ? 'sel' : ''}" style="${backtestResultFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestResultFilter='All'; renderBacktests()">All</button>
+          <button class="${backtestResultFilter === 'TP' ? 'sel' : ''}" data-r="win" onclick="backtestResultFilter='TP'; renderBacktests()">TP</button>
+          <button class="${backtestResultFilter === 'SL' ? 'sel' : ''}" data-r="loss" onclick="backtestResultFilter='SL'; renderBacktests()">SL</button>
+          <button class="${backtestResultFilter === 'BE' ? 'sel' : ''}" data-r="be" onclick="backtestResultFilter='BE'; renderBacktests()">BE</button>
+        </div>
+        <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px">
+          <label style="margin:0; white-space:nowrap">Filtrar por fecha:</label>
+          <input type="date" id="btDateFilter" value="${backtestDateFilter}" style="width:auto; text-align:left" onchange="backtestDateFilter=this.value; renderBacktests()">
+          <button class="iconbtn" style="padding:6px 10px; font-size:11px" onclick="backtestDateFilter=''; renderBacktests()">Limpiar</button>
         </div>
       </div>
-    </div>
-    <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
-      <button class="${backtestSessionFilter === 'All' ? 'sel' : ''}" style="${backtestSessionFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestSessionFilter='All'; renderBacktests()">All</button>
-      <button class="${backtestSessionFilter === 'London' ? 'sel' : ''}" data-r="win" onclick="backtestSessionFilter='London'; renderBacktests()">London</button>
-      <button class="${backtestSessionFilter === 'New York' ? 'sel' : ''}" data-r="be" onclick="backtestSessionFilter='New York'; renderBacktests()">New York</button>
-    </div>
-    <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
-      <button class="${backtestIfvgFilter === 'All' ? 'sel' : ''}" style="${backtestIfvgFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestIfvgFilter='All'; renderBacktests()">All</button>
-      <button class="${backtestIfvgFilter === 'Pre-market' ? 'sel' : ''}" style="${backtestIfvgFilter === 'Pre-market' ? 'background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);' : ''}" onclick="backtestIfvgFilter='Pre-market'; renderBacktests()">Pre-market</button>
-      <button class="${backtestIfvgFilter === 'In session' ? 'sel' : ''}" style="${backtestIfvgFilter === 'In session' ? 'background:var(--passed-soft); color:var(--passed); border-color:var(--passed);' : ''}" onclick="backtestIfvgFilter='In session'; renderBacktests()">In session</button>
-    </div>
-    <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
-      <button class="${backtestResultFilter === 'All' ? 'sel' : ''}" style="${backtestResultFilter === 'All' ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestResultFilter='All'; renderBacktests()">All</button>
-      <button class="${backtestResultFilter === 'TP' ? 'sel' : ''}" data-r="win" onclick="backtestResultFilter='TP'; renderBacktests()">TP</button>
-      <button class="${backtestResultFilter === 'SL' ? 'sel' : ''}" data-r="loss" onclick="backtestResultFilter='SL'; renderBacktests()">SL</button>
-      <button class="${backtestResultFilter === 'BE' ? 'sel' : ''}" data-r="be" onclick="backtestResultFilter='BE'; renderBacktests()">BE</button>
-    </div>
-    <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px">
-      <label style="margin:0; white-space:nowrap">Filtrar por fecha:</label>
-      <input type="date" id="btDateFilter" value="${backtestDateFilter}" style="width:auto; text-align:left" onchange="backtestDateFilter=this.value; renderBacktests()">
-      <button class="iconbtn" style="padding:6px 10px; font-size:11px" onclick="backtestDateFilter=''; renderBacktests()">Limpiar</button>
     </div>
     <div class="top-actions">
       <button class="iconbtn" onclick="renderBacktests(true)">+ Nuevo Backtest</button>
