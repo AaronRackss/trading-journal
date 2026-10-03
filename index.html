@@ -433,6 +433,12 @@
     font-weight: 800 !important;
     border: 2px solid var(--win) !important;
   }
+  .matrix-loss {
+    background: var(--loss-soft) !important;
+    color: var(--loss) !important;
+    font-weight: 800 !important;
+    border: 2px solid var(--loss) !important;
+  }
   .matrix-value {
     font-size: 16px;
     font-weight: 700;
@@ -1892,6 +1898,8 @@ let backtestPhotoPreview = null;
 let backtestResult = null;
 let backtestIfvg = null;
 let backtestRating = null;
+let backtestDate = "";
+let backtestExecTime = "";
 let backtestSetup = "";
 let backtestNote = "";
 let backtestResultFilter = "All";
@@ -1916,12 +1924,42 @@ function renderBacktests(showForm) {
     const decisive = wins.length + losses.length;
     const winrate = decisive ? Math.round((wins.length / decisive) * 100) : 0;
 
+    // --- Streak Calculation per Session ---
+    const calcStreaks = (sessionName) => {
+      let maxWin = 0, maxLoss = 0, currentWin = 0, currentLoss = 0;
+      const sessionTrades = activeTrades
+        .filter(t => t.session === sessionName)
+        .sort((a, b) => a.date - b.date);
+
+      sessionTrades.forEach(t => {
+        if (t.result === 'TP') {
+          currentWin++;
+          currentLoss = 0;
+          if (currentWin > maxWin) maxWin = currentWin;
+        } else if (t.result === 'SL') {
+          currentLoss++;
+          currentWin = 0;
+          if (currentLoss > maxLoss) maxLoss = currentLoss;
+        } else {
+          currentWin = 0;
+          currentLoss = 0;
+        }
+      });
+      return { maxWin, maxLoss };
+    };
+
+    const london = calcStreaks('London');
+    const newYork = calcStreaks('New York');
+
     const grossProfit = wins.length;
     const grossLoss = losses.length;
     const profitFactor = grossLoss !== 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
     const expectancy = decisive ? ((wins.length - losses.length) / decisive).toFixed(2) : '0.00';
 
-    return { total, winrate, decisive, profitFactor, expectancy, wins: wins.length, losses: losses.length };
+    return {
+      total, winrate, decisive, profitFactor, expectancy, wins: wins.length, losses: losses.length,
+      london, newYork
+    };
   };
 
   const statsAll = getAdvancedStats(state.backtests);
@@ -1932,72 +1970,88 @@ function renderBacktests(showForm) {
   // --- Matrix Calculation ---
   const calculateMatrix = () => {
     const sessions = ['London', 'New York'];
-    const ifvgs = ['Pre-market', 'In session'];
+    const results = ['TP', 'SL'];
 
     const matrixData = [];
-    let globalBest = { wr: -1, label: 'Ninguno' };
 
-    ifvgs.forEach(ifvg => {
-      const row = { ifvg, cells: [] };
+    results.forEach(res => {
+      const row = { result: res, cells: [] };
       sessions.forEach(session => {
-        const filtered = state.backtests.filter(b => !b.archived && b.session === session && b.ifvg === ifvg);
-        const wins = filtered.filter(b => b.result === 'TP').length;
-        const losses = filtered.filter(b => b.result === 'SL').length;
-        const decisive = wins + losses;
-        const wr = decisive ? Math.round((wins / decisive) * 100) : 0;
-        const cellData = { session, wr, count: filtered.length };
-        row.cells.push(cellData);
-        if (wr > globalBest.wr) globalBest = { wr, label: `${session} + ${ifvg}` };
+        const filtered = state.backtests.filter(b => !b.archived && b.session === session && b.result === res);
+        row.cells.push({ session, count: filtered.length });
       });
       matrixData.push(row);
     });
 
-    const getStats = (filterKey, filterVal) => {
-      const filtered = state.backtests.filter(b => !b.archived && b[filterKey] === filterVal);
-      const wins = filtered.filter(b => b.result === 'TP').length;
-      const losses = filtered.filter(b => b.result === 'SL').length;
-      const decisive = wins + losses;
-      return { wr: decisive ? Math.round((wins / decisive) * 100) : 0, count: filtered.length };
-    };
+    // Pre-calcular winrates para determinar mejor/peor celda
+    const sessionWRs = sessions.map((session, idx) => {
+      const tpCount = matrixData[0].cells[idx].count;
+      const slCount = matrixData[1].cells[idx].count;
+      const decisive = tpCount + slCount;
+      return { session, wr: decisive ? Math.round((tpCount / decisive) * 100) : 0, decisive };
+    });
 
-    const sessionTotals = sessions.map(s => getStats('session', s));
-    const ifvgTotals = ifvgs.map(i => getStats('ifvg', i));
+    const bestSession = sessionWRs.reduce((prev, curr) => (curr.decisive > 0 && curr.wr > prev.wr) ? curr : prev, { wr: -1 });
+    const worstSession = sessionWRs.reduce((prev, curr) => (curr.decisive > 0 && curr.wr < prev.wr) ? curr : prev, { wr: 101 });
+
+    const ifvgStats = ['Pre-market', 'In session'].map(ifvg => {
+      const filtered = state.backtests.filter(b => !b.archived && b.ifvg === ifvg);
+      return { ifvg, count: filtered.length };
+    });
 
     return `
-      <div class="section-title" style="text-align:center">Matriz de Rentabilidad Cruzada</div>
+      <div class="section-title" style="text-align:center">Matriz de Resultados por Sesión</div>
       <table class="matrix-table">
         <thead>
           <tr style="background:rgba(255,255,255,0.08)">
-            <th>IFVG \\ Sesión</th>
+            <th>Resultado \\ Sesión</th>
             ${sessions.map(s => `<th>${s}</th>`).join('')}
-            <th style="border-left: 2px solid var(--border)">Total IFVG</th>
+            <th style="border-left: 2px solid var(--border)">Total</th>
           </tr>
         </thead>
         <tbody>
-          ${matrixData.map((row, i) => `
-            <tr>
-              <td style="background:rgba(255,255,255,0.03); font-weight:700">${row.ifvg}</td>
-              ${row.cells.map(cell => {
-                const isBest = cell.wr === globalBest.wr && globalBest.wr !== -1 && cell.count > 0;
-                return `<td class="${isBest ? 'matrix-winner' : ''}">
-                  <span class="matrix-value">${cell.wr}%</span>
-                  <span class="matrix-label">${cell.count} trades</span>
-                </td>`;
-              }).join('')}
-              <td style="border-left: 2px solid var(--border); font-weight:700">
-                ${ifvgTotals[i].wr}% <small>(${ifvgTotals[i].count})</small>
-              </td>
-            </tr>`).join('')}
-          <tr style="background:rgba(255,255,255,0.08); font-weight:700">
-            <td>Total Sesión</td>
-            ${sessionTotals.map(st => `<td>${st.wr}% <small>(${st.count})</small></td>`).join('')}
-            <td style="border-left: 2px solid var(--border)">Global</td>
-          </tr>
+          ${matrixData.map((row, i) => {
+            const rowTotal = row.cells.reduce((sum, c) => sum + c.count, 0);
+            const slRow = matrixData.find(r => r.result === 'SL');
+            const tpRow = matrixData.find(r => r.result === 'TP');
+
+            return `
+              <tr style="border-bottom: 1px solid var(--border)">
+                <td style="background:rgba(255,255,255,0.03); font-weight:700; color:${row.result === 'TP' ? 'var(--win)' : 'var(--loss)'}">${row.result}</td>
+                ${row.cells.map((cell, cellIdx) => {
+                  const tpCount = tpRow.cells[cellIdx].count;
+                  const slCount = slRow.cells[cellIdx].count;
+                  const decisive = tpCount + slCount;
+                  const wr = decisive ? Math.round((tpCount / decisive) * 100) : 0;
+
+                  let cellClass = "";
+                  if (decisive > 0) {
+                    if (wr === bestSession.wr && wr !== -1) cellClass = "matrix-winner";
+                    else if (wr === worstSession.wr && wr !== 101) cellClass = "matrix-loss";
+                  }
+
+                  return `<td class="${cellClass}">
+                    <span class="matrix-value">${cell.count}</span>
+                    <span class="matrix-label" style="display:block; font-size:12px; font-weight:700; opacity:1">
+                      ${decisive ? wr + '%' : '—'} WR
+                    </span>
+                  </td>`;
+                }).join('')}
+                <td style="border-left: 2px solid var(--border); font-weight:700">${rowTotal}</td>
+              </tr>`;
+          }).join('')}
         </tbody>
       </table>
-      <div class="card fade-in-card" style="text-align:center; border-color:var(--win); background:var(--win-soft); margin-bottom:16px">
-        <div class="meta" style="color:var(--win); font-weight:700; text-transform:uppercase; font-size:11px">Combinación Ganadora</div>
-        <div style="font-size:18px; font-weight:800; color:var(--text)">${globalBest.label} <span style="color:var(--win)">(${globalBest.wr}%)</span></div>
+
+      <div class="grid2" style="margin-bottom:16px; gap:10px">
+        ${ifvgStats.map(s => `
+          <div class="card fade-in-card" style="padding:10px; text-align:center; border-color:${s.ifvg === 'Pre-market' ? 'var(--buffer)' : 'var(--passed)'}; background:${s.ifvg === 'Pre-market' ? 'var(--buffer-soft)' : 'var(--passed-soft)'}">
+            <div class="meta" style="color:${s.ifvg === 'Pre-market' ? 'var(--buffer)' : 'var(--passed)'}; font-weight:700; text-transform:uppercase; font-size:10px; margin-bottom:4px">${s.ifvg}</div>
+            <div class="rowstats" style="justify-content:center; margin:0; font-size:12px">
+              <div>Trades<strong style="color:var(--text); font-size:16px">${s.count}</strong></div>
+            </div>
+          </div>
+        `).join('')}
       </div>`;
   };
 
@@ -2038,6 +2092,25 @@ function renderBacktests(showForm) {
 
   let html = `
     ${matrixHtml}
+
+    <div class="grid2" style="margin-bottom:16px; gap:10px">
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--win); background:var(--win-soft); padding:10px">
+        <div class="meta" style="color:var(--win); font-weight:700; text-transform:uppercase; font-size:10px; margin-bottom:4px">London Streaks</div>
+        <div class="rowstats" style="justify-content:center; gap:12px; margin:0; font-size:12px">
+          <div>TP<strong style="color:var(--win); font-size:16px">${statsAll.london.maxWin}</strong></div>
+          <div style="width:1px; height:14px; background:var(--border)"></div>
+          <div>SL<strong style="color:var(--loss); font-size:16px">${statsAll.london.maxLoss}</strong></div>
+        </div>
+      </div>
+      <div class="card fade-in-card" style="text-align:center; border-color:var(--accent); background:var(--accent-soft); padding:10px">
+        <div class="meta" style="color:var(--accent); font-weight:700; text-transform:uppercase; font-size:10px; margin-bottom:4px">NY Streaks</div>
+        <div class="rowstats" style="justify-content:center; gap:12px; margin:0; font-size:12px">
+          <div>TP<strong style="color:var(--win); font-size:16px">${statsAll.newYork.maxWin}</strong></div>
+          <div style="width:1px; height:14px; background:var(--border)"></div>
+          <div>SL<strong style="color:var(--loss); font-size:16px">${statsAll.newYork.maxLoss}</strong></div>
+        </div>
+      </div>
+    </div>
 
     <div class="collapsible-section">
       <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('show'); this.querySelector('.chevron').classList.toggle('rotated')">
@@ -2133,7 +2206,15 @@ function renderBacktests(showForm) {
       html += `<div class="empty">No hay trades que coincidan con los filtros seleccionados.</div>`;
     } else {
       html += `<div class="backtest-grid">`;
-      [...filtered].sort((a, b) => b.date - a.date).forEach((b, index) => {
+      [...filtered].sort((a, b) => {
+        // 1. Ordenar por fecha (más reciente primero)
+        if (b.date !== a.date) return b.date - a.date;
+        // 2. Ordenar por hora de ejecución (más reciente primero)
+        if (b.execTime && a.execTime) {
+          return b.execTime.localeCompare(a.execTime);
+        }
+        return 0;
+      }).forEach((b, index) => {
         const resBadge = b.result === 'TP' ? 'tp' : b.result === 'SL' ? 'sl' : b.result === 'BE' ? 'be' : 'time';
 
         html += `
@@ -2155,7 +2236,6 @@ function renderBacktests(showForm) {
                 "${escapeHtml(b.note || 'Sin notas')}"
               </div>
               <div class="card-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%">
-                <div class="meta" style="margin:0">Rating: <strong style="color:var(--text)">${b.rating || '—'}</strong></div>
                 <div style="display:flex; gap:8px; margin-left:auto">
                   <button class="iconbtn" style="padding:4px 8px; font-size:11px" onclick="toggleBacktestArchive('${b.id}')" title="Archivar/Desarchivar">
                     <i data-lucide="${b.archived ? 'archive' : 'archive-x'}" style="width:12px; height:12px"></i>
@@ -2211,10 +2291,10 @@ function backtestFormHtml() {
       ` : ""}
 
       <label>Fecha</label>
-      <input type="date" id="btDate" value="${b ? new Date(b.date).toISOString().slice(0,10) : ''}">
+      <input type="date" id="btDate" value="${b ? new Date(b.date).toISOString().slice(0,10) : (backtestDate || '')}" onchange="backtestDate=this.value">
 
       <label>Hora de Ejecución</label>
-      <input type="time" id="btExecTime" value="${b ? b.execTime : ''}">
+      <input type="time" id="btExecTime" value="${b ? b.execTime : (backtestExecTime || '')}" onchange="backtestExecTime=this.value">
 
       <label>Resultado</label>
       <div class="segmented" style="justify-content:center">
@@ -2238,19 +2318,10 @@ function backtestFormHtml() {
 
 
       <label>Setup / Estrategia</label>
-      <input type="text" id="btSetup" value="${b ? escapeHtml(b.setup || '') : ''}" placeholder="Ej. Silver Bullet, Liquidity Sweep...">
-
-      <label>Valoración del Trade</label>
-      <div class="segmented" style="justify-content:center">
-        ${['malo', 'meh', 'perfecto'].map(r => `
-          <button class="${(b && b.rating === r) || (editingBacktestId === null && backtestRating === r) ? 'sel' : ''}"
-                  data-r="${r === 'malo' ? 'loss' : r === 'perfecto' ? 'win' : 'be'}"
-                  onclick="backtestRating='${r}'; renderBacktests(true)">${r.charAt(0).toUpperCase() + r.slice(1)}</button>
-        `).join("")}
-      </div>
+      <input type="text" id="btSetup" value="${b ? escapeHtml(b.setup || '') : (backtestSetup || '')}" placeholder="Ej. Silver Bullet, Liquidity Sweep..." oninput="backtestSetup=this.value">
 
       <label>Notas de Aprendizaje</label>
-      <textarea id="btNote" placeholder="¿Qué aprendiste de este trade?">${b ? escapeHtml(b.note || '') : ''}</textarea>
+      <textarea id="btNote" placeholder="¿Qué aprendiste de este trade?" oninput="backtestNote=this.value">${b ? escapeHtml(b.note || '') : (backtestNote || '')}</textarea>
 
       <button class="btn" style="margin-top:20px" onclick="saveBacktest()">${b ? 'Guardar Cambios' : 'Guardar Backtest'}</button>
       ${b ? `<button class="btn danger" style="margin-top:8px" onclick="deleteBacktest('${b.id}')">Eliminar</button>` : ""}
