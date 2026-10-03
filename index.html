@@ -376,6 +376,12 @@
     box-shadow: 0 12px 24px rgba(0,0,0,0.5);
     border-color: var(--text);
   }
+  .backtest-grid .card.archived {
+    opacity: 0.5;
+    filter: grayscale(0.8);
+    border-style: dashed;
+  }
+
   .backtest-grid .cover {
     width: 100%;
     aspect-ratio: 4 / 3;
@@ -1903,9 +1909,10 @@ function renderBacktests(showForm) {
 
   // --- Stats Calculation ---
   const getAdvancedStats = (trades) => {
-    const total = trades.length;
-    const wins = trades.filter(b => b.result === 'TP');
-    const losses = trades.filter(b => b.result === 'SL');
+    const activeTrades = trades.filter(b => !b.archived);
+    const total = activeTrades.length;
+    const wins = activeTrades.filter(b => b.result === 'TP');
+    const losses = activeTrades.filter(b => b.result === 'SL');
     const decisive = wins.length + losses.length;
     const winrate = decisive ? Math.round((wins.length / decisive) * 100) : 0;
 
@@ -1933,7 +1940,7 @@ function renderBacktests(showForm) {
     ifvgs.forEach(ifvg => {
       const row = { ifvg, cells: [] };
       sessions.forEach(session => {
-        const filtered = state.backtests.filter(b => b.session === session && b.ifvg === ifvg);
+        const filtered = state.backtests.filter(b => !b.archived && b.session === session && b.ifvg === ifvg);
         const wins = filtered.filter(b => b.result === 'TP').length;
         const losses = filtered.filter(b => b.result === 'SL').length;
         const decisive = wins + losses;
@@ -1946,7 +1953,7 @@ function renderBacktests(showForm) {
     });
 
     const getStats = (filterKey, filterVal) => {
-      const filtered = state.backtests.filter(b => b[filterKey] === filterVal);
+      const filtered = state.backtests.filter(b => !b.archived && b[filterKey] === filterVal);
       const wins = filtered.filter(b => b.result === 'TP').length;
       const losses = filtered.filter(b => b.result === 'SL').length;
       const decisive = wins + losses;
@@ -2130,7 +2137,7 @@ function renderBacktests(showForm) {
         const resBadge = b.result === 'TP' ? 'tp' : b.result === 'SL' ? 'sl' : b.result === 'BE' ? 'be' : 'time';
 
         html += `
-          <div class="card fade-in-card" style="animation-delay: ${index * 0.1}s">
+          <div class="card fade-in-card ${b.archived ? 'archived' : ''}" style="animation-delay: ${index * 0.1}s">
             <img src="${b.photo}" class="cover" onclick="openLightbox('${b.photo}')">
             <div class="card-content">
               <div class="card-header">
@@ -2150,6 +2157,9 @@ function renderBacktests(showForm) {
               <div class="card-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%">
                 <div class="meta" style="margin:0">Rating: <strong style="color:var(--text)">${b.rating || '—'}</strong></div>
                 <div style="display:flex; gap:8px; margin-left:auto">
+                  <button class="iconbtn" style="padding:4px 8px; font-size:11px" onclick="toggleBacktestArchive('${b.id}')" title="Archivar/Desarchivar">
+                    <i data-lucide="${b.archived ? 'archive' : 'archive-x'}" style="width:12px; height:12px"></i>
+                  </button>
                   <button class="iconbtn" style="padding:4px 8px; font-size:11px" onclick="openEditBacktest('${b.id}')">Editar</button>
                   <button class="iconbtn danger" style="padding:4px 8px; font-size:11px" onclick="deleteBacktest('${b.id}')">Eliminar</button>
                 </div>
@@ -2351,6 +2361,15 @@ function deleteBacktest(id) {
   editingBacktestId = null;
   toast("Backtest eliminado");
   renderBacktests();
+}
+
+function toggleBacktestArchive(id) {
+  const b = state.backtests.find(x => x.id === id);
+  if (!b) return;
+  b.archived = !b.archived;
+  save();
+  renderBacktests();
+  toast(b.archived ? "Trade archivado" : "Trade activado");
 }
 
 let financeSubView = "certs";
