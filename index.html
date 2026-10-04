@@ -1906,6 +1906,7 @@ let backtestResultFilter = "All";
 let backtestIfvgFilter = "All";
 let backtestSessionFilter = "All";
 let backtestDateFilter = "";
+let backtestShowArchived = false;
 
 function renderBacktests(showForm) {
   const el = document.getElementById("view-backtest");
@@ -2163,6 +2164,10 @@ function renderBacktests(showForm) {
           <button class="${backtestResultFilter === 'SL' ? 'sel' : ''}" data-r="loss" onclick="backtestResultFilter='SL'; renderBacktests()">SL</button>
           <button class="${backtestResultFilter === 'BE' ? 'sel' : ''}" data-r="be" onclick="backtestResultFilter='BE'; renderBacktests()">BE</button>
         </div>
+        <div class="segmented sticky-tabs" style="justify-content:flex-start; margin-bottom:16px; border:none; background:none; box-shadow:none; padding:0">
+          <button class="${!backtestShowArchived ? 'sel' : ''}" style="${!backtestShowArchived ? 'background:var(--be-soft); color:var(--be); border-color:var(--be);' : ''}" onclick="backtestShowArchived=false; renderBacktests()">Activos</button>
+          <button class="${backtestShowArchived ? 'sel' : ''}" style="${backtestShowArchived ? 'background:var(--buffer-soft); color:var(--buffer); border-color:var(--buffer);' : ''}" onclick="backtestShowArchived=true; renderBacktests()">Archivados</button>
+        </div>
         <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px">
           <label style="margin:0; white-space:nowrap">Filtrar por fecha:</label>
           <input type="date" id="btDateFilter" value="${backtestDateFilter}" style="width:auto; text-align:left" onchange="backtestDateFilter=this.value; renderBacktests()">
@@ -2179,19 +2184,23 @@ function renderBacktests(showForm) {
   } else {
     // Apply Combined Filter (Category + Date)
     const filtered = state.backtests.filter(b => {
-      // 1. Result Filter
+      // 1. Archived Filter
+      let matchArchived = true;
+      if (!backtestShowArchived) matchArchived = !b.archived;
+
+      // 2. Result Filter
       let matchResult = true;
       if (backtestResultFilter !== 'All') matchResult = (b.result === backtestResultFilter);
 
-      // 2. IFVG Filter
+      // 3. IFVG Filter
       let matchIfvg = true;
       if (backtestIfvgFilter !== 'All') matchIfvg = (b.ifvg === backtestIfvgFilter);
 
-      // 3. Session Filter
+      // 4. Session Filter
       let matchSession = true;
       if (backtestSessionFilter !== 'All') matchSession = (b.session === backtestSessionFilter);
 
-      // 4. Date Filter
+      // 5. Date Filter
       let matchDate = true;
       if (backtestDateFilter) {
         const filterDateStr = backtestDateFilter; // YYYY-MM-DD
@@ -2199,7 +2208,7 @@ function renderBacktests(showForm) {
         matchDate = (filterDateStr === tradeDateStr);
       }
 
-      return matchResult && matchIfvg && matchSession && matchDate;
+      return matchArchived && matchResult && matchIfvg && matchSession && matchDate;
     });
 
     if (filtered.length === 0) {
